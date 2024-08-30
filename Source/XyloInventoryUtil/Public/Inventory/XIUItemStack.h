@@ -10,19 +10,28 @@ class UXIUItem;
 /**
  * 
  */
-UCLASS()
+UCLASS(BlueprintType)
 class XYLOINVENTORYUTIL_API UXIUItemStack : public UObject
 {
 	GENERATED_BODY()
 
+public:
+	UXIUItemStack(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	
 private:
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category = "Item")
 	UXIUItem* Item;
+	UPROPERTY(EditAnywhere, Category = "Item")
 	int Count;
 
 public:
+	void SetItem(UXIUItem* NewItem);
 	UXIUItem* GetItem() const;
 	int GetCount();
 	void SetCount(int NewCount);
 	void AddCount(int AddCount);
+
+private:
+	void AddFragments();
 };
