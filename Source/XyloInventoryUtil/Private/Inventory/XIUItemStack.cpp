@@ -3,6 +3,8 @@
 
 #include "Inventory/XIUItemStack.h"
 
+#include "Net/UnrealNetwork.h"
+
 UXIUItemStack::UXIUItemStack(const FObjectInitializer& ObjectInitializer)
 	:Super(ObjectInitializer)
 {
@@ -11,6 +13,16 @@ UXIUItemStack::UXIUItemStack(const FObjectInitializer& ObjectInitializer)
 void UXIUItemStack::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	UObject::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ThisClass, Item)
+	DOREPLIFETIME(ThisClass, Count)
+}
+
+UXIUItemFragment* UXIUItemStack::AddFragment(UXIUItemFragment* ItemFragment)
+{
+	Fragments.AddFragment(ItemFragment);
+	ItemFragment->OnInstanceCreated(this);
+	return ItemFragment;
 }
 
 void UXIUItemStack::SetItem(UXIUItem* NewItem)

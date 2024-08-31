@@ -22,7 +22,7 @@ class UXIUItemStack;
 
 /** A single entry in an inventory */
 USTRUCT(BlueprintType)
-struct FXIUInventoryEntry : public FFastArraySerializerItem
+struct FXIUInventorySlot : public FFastArraySerializerItem
 {
 	GENERATED_BODY()
 
@@ -31,7 +31,7 @@ private:
 	friend UXIUInventoryComponent;
 
 public:
-	FXIUInventoryEntry()
+	FXIUInventorySlot()
 	{}
 	
 public:
@@ -78,7 +78,7 @@ public:
 
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
 	{
-		return FFastArraySerializer::FastArrayDeltaSerialize<FXIUInventoryEntry, FXIUInventoryList>(Entries, DeltaParms, *this);
+		return FFastArraySerializer::FastArrayDeltaSerialize<FXIUInventorySlot, FXIUInventoryList>(Entries, DeltaParms, *this);
 	}
 
 	TArray<UXIUItemStack*> GetAllItems() const;
@@ -89,12 +89,12 @@ public:
 	void RemoveEntry(UXIUItemStack* Stack);
 
 private:
-	void BroadcastChangeMessage(FXIUInventoryEntry& Entry, int32 OldCount, int32 NewCount);
+	void BroadcastChangeMessage(FXIUInventorySlot& Entry, int32 OldCount, int32 NewCount);
 
 private:
 	// Replicated list of items
 	UPROPERTY()
-	TArray<FXIUInventoryEntry> Entries;
+	TArray<FXIUInventorySlot> Entries;
 
 	UPROPERTY(NotReplicated)
 	TObjectPtr<UActorComponent> OwnerComponent;
@@ -113,8 +113,19 @@ class XYLOINVENTORYUTIL_API UXIUInventoryComponent : public UActorComponent
 	GENERATED_BODY()
 
 public:
-	UXIUInventoryComponent();
+	UXIUInventoryComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/*
+ * UObject Interface
+ */
+
+public:
+	virtual bool ReplicateSubobjects(class UActorChannel* Channel, class FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
+	virtual void ReadyForReplication() override;
+
+	
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	/*
@@ -135,6 +146,43 @@ public:
 	 */
 
 private:
- 	UPROPERTY(EditDefaultsOnly)
+ 	UPROPERTY(EditDefaultsOnly, Replicated)
  	FXIUInventoryList Inventory;
+
+public:
+	UPROPERTY(EditDefaultsOnly)
+	TArray<TSubclassOf<UXIUItem>> DefaultItems;
+
+public:
+	UFUNCTION(BlueprintCallable)
+	void AddDefaultItems();
+
+	UFUNCTION(Server, Reliable)
+	void ServerAddDefaultItems();
+	
+	UFUNCTION(BlueprintCallable)
+	void PrintItems();
+
+
+
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category=Inventory)
+	bool CanAddItemDefinition(TSubclassOf<UXIUItem> ItemDef, int32 StackCount = 1);
+
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category=Inventory)
+	UXIUItemStack* AddItemDefinition(TSubclassOf<UXIUItem> ItemDef, int32 StackCount = 1);
+
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category=Inventory)
+	void AddItemInstance(UXIUItemStack* ItemInstance);
+
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category=Inventory)
+	void RemoveItemInstance(UXIUItemStack* ItemInstance);
+
+	UFUNCTION(BlueprintCallable, Category=Inventory, BlueprintPure=false)
+	TArray<UXIUItemStack*> GetAllItems() const;
+
+	UFUNCTION(BlueprintCallable, Category=Inventory, BlueprintPure)
+	UXIUItemStack* FindFirstItemStackByDefinition(TSubclassOf<UXIUItem> ItemDef) const;
+
+	int32 GetTotalItemCountByDefinition(TSubclassOf<UXIUItem> ItemDef) const;
+	bool ConsumeItemsByDefinition(TSubclassOf<UXIUItem> ItemDef, int32 NumToConsume);
 };

@@ -3,17 +3,19 @@
 
 #include "Inventory/XIUInventoryComponent.h"
 
+#include "Engine/ActorChannel.h"
 #include "Inventory/XIUItemStack.h"
+#include "Net/UnrealNetwork.h"
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /*
- * FXIUInventoryEntry Interface
+ * FXIUInventorySlot Interface
  */
 
 
-FString FXIUInventoryEntry::GetDebugString() const
+FString FXIUInventorySlot::GetDebugString() const
 {
 	TSubclassOf<UXIUItem> Item;
 	if (Stack != nullptr)
@@ -28,7 +30,7 @@ FString FXIUInventoryEntry::GetDebugString() const
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /*
- * FXIUInventoryList Interface
+ * FXIUInventory Interface
  */
 
 
@@ -48,7 +50,7 @@ TArray<UXIUItemStack*> FXIUInventoryList::GetAllItems() const
 {
 	TArray<UXIUItemStack*> Results;
 	Results.Reserve(Entries.Num());
-	for (const FXIUInventoryEntry& Entry : Entries)
+	for (const FXIUInventorySlot& Entry : Entries)
 	{
 		if (Entry.Stack != nullptr) //@TODO: Would prefer to not deal with this here and hide it further?
 		{
@@ -69,14 +71,14 @@ UXIUItemStack* FXIUInventoryList::AddEntry(TSubclassOf<UXIUItem> ItemClass, int3
 	check(OwningActor->HasAuthority());
 
 
-	FXIUInventoryEntry& NewEntry = Entries.AddDefaulted_GetRef();
+	FXIUInventorySlot& NewEntry = Entries.AddDefaulted_GetRef();
 	NewEntry.Stack = NewObject<UXIUItemStack>(OwnerComponent->GetOwner());  //@TODO: Using the actor instead of component as the outer due to UE-127172
 	NewEntry.Stack->SetItem(ItemClass.GetDefaultObject());
 	for (UXIUItemFragment* Fragment : GetDefault<UXIUItem>(ItemClass)->Fragments)
 	{
 		if (Fragment != nullptr)
 		{
-			Fragment->OnInstanceCreated(NewEntry.Stack);
+			NewEntry.Stack->AddFragment(Fragment);
 		}
 	}
 	NewEntry.Stack->SetCount(StackCount);
@@ -97,7 +99,7 @@ void FXIUInventoryList::RemoveEntry(UXIUItemStack* Stack)
 {
 	for (auto EntryIt = Entries.CreateIterator(); EntryIt; ++EntryIt)
 	{
-		FXIUInventoryEntry& Entry = *EntryIt;
+		FXIUInventorySlot& Entry = *EntryIt;
 		if (Entry.Stack == Stack)
 		{
 			EntryIt.RemoveCurrent();
@@ -106,7 +108,7 @@ void FXIUInventoryList::RemoveEntry(UXIUItemStack* Stack)
 	}
 }
 
-void FXIUInventoryList::BroadcastChangeMessage(FXIUInventoryEntry& Entry, int32 OldCount, int32 NewCount)
+void FXIUInventoryList::BroadcastChangeMessage(FXIUInventorySlot& Entry, int32 OldCount, int32 NewCount)
 {
 }
 
@@ -117,13 +119,60 @@ void FXIUInventoryList::BroadcastChangeMessage(FXIUInventoryEntry& Entry, int32 
 /*--------------------------------------------------------------------------------------------------------------------*/
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-UXIUInventoryComponent::UXIUInventoryComponent()
+
+UXIUInventoryComponent::UXIUInventoryComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+	, Inventory(this)
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	SetIsReplicatedByDefault(true);
 
-	//Inventory = FXIUInventory::FXIUInventory(3);
+	//Inventory = FXIUInventoryList::FXIUInventory(3);
 }
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/*
+ * UObject Interface
+ */
+
+bool UXIUInventoryComponent::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags)
+{
+	bool WroteSomething = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
+
+	for (FXIUInventorySlot& Entry : Inventory.Entries)
+	{
+		UXIUItemStack* Instance = Entry.Stack;
+
+		if (Instance && IsValid(Instance))
+		{
+			WroteSomething |= Channel->ReplicateSubobject(Instance, *Bunch, *RepFlags);
+		}
+	}
+
+	return WroteSomething;
+}
+
+void UXIUInventoryComponent::ReadyForReplication()
+{
+	Super::ReadyForReplication();
+	
+	// Register existing UXIUItemStack
+	if (IsUsingRegisteredSubObjectList())
+	{
+		for (const FXIUInventorySlot& Entry : Inventory.Entries)
+		{
+			UXIUItemStack* Instance = Entry.Stack;
+
+			if (IsValid(Instance))
+			{
+				AddReplicatedSubObject(Instance);
+			}
+		}
+	}
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -144,6 +193,8 @@ void UXIUInventoryComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 void UXIUInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ThisClass, Inventory);
 }
 
 
@@ -152,3 +203,140 @@ void UXIUInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 /*
  * Inventory
  */
+
+void UXIUInventoryComponent::AddDefaultItems()
+{
+	ServerAddDefaultItems();
+}
+
+void UXIUInventoryComponent::ServerAddDefaultItems_Implementation()
+{
+	if (GetOwner() && GetOwner()->HasAuthority())
+    	{
+    		for (TSubclassOf<UXIUItem> Item : DefaultItems)
+    		{
+    			Inventory.AddEntry(Item, 2);
+    		}
+    	}
+}
+
+void UXIUInventoryComponent::PrintItems()
+{
+	for (UXIUItemStack* Stack : Inventory.GetAllItems())
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, FString::Printf(TEXT("Item: %s  ;  Count %i"), *Stack->GetItem()->Name, Stack->GetCount()));
+	}
+}
+
+
+
+
+
+
+bool UXIUInventoryComponent::CanAddItemDefinition(TSubclassOf<UXIUItem> ItemDef, int32 StackCount)
+{
+	//@TODO: Add support for stack limit / uniqueness checks / etc...
+	return true;
+}
+
+UXIUItemStack* UXIUInventoryComponent::AddItemDefinition(TSubclassOf<UXIUItem> ItemDef, int32 StackCount)
+{
+	UXIUItemStack* Result = nullptr;
+	if (ItemDef != nullptr)
+	{
+		Result = Inventory.AddEntry(ItemDef, StackCount);
+		
+		if (IsUsingRegisteredSubObjectList() && IsReadyForReplication() && Result)
+		{
+			AddReplicatedSubObject(Result);
+		}
+	}
+	return Result;
+}
+
+void UXIUInventoryComponent::AddItemInstance(UXIUItemStack* ItemInstance)
+{
+	Inventory.AddEntry(ItemInstance);
+	if (IsUsingRegisteredSubObjectList() && IsReadyForReplication() && ItemInstance)
+	{
+		AddReplicatedSubObject(ItemInstance);
+	}
+}
+
+void UXIUInventoryComponent::RemoveItemInstance(UXIUItemStack* ItemInstance)
+{
+	Inventory.RemoveEntry(ItemInstance);
+
+	if (ItemInstance && IsUsingRegisteredSubObjectList())
+	{
+		RemoveReplicatedSubObject(ItemInstance);
+	}
+}
+
+TArray<UXIUItemStack*> UXIUInventoryComponent::GetAllItems() const
+{
+	return Inventory.GetAllItems();
+}
+
+UXIUItemStack* UXIUInventoryComponent::FindFirstItemStackByDefinition(TSubclassOf<UXIUItem> ItemDef) const
+{
+	for (const FXIUInventorySlot& Entry : Inventory.Entries)
+	{
+		UXIUItemStack* Instance = Entry.Stack;
+
+		if (IsValid(Instance))
+		{
+			if (Instance->GetItem()->GetClass() == ItemDef)
+			{
+				return Instance;
+			}
+		}
+	}
+
+	return nullptr;
+}
+
+int32 UXIUInventoryComponent::GetTotalItemCountByDefinition(TSubclassOf<UXIUItem> ItemDef) const
+{
+	int32 TotalCount = 0;
+	for (const FXIUInventorySlot& Entry : Inventory.Entries)
+	{
+		UXIUItemStack* Instance = Entry.Stack;
+
+		if (IsValid(Instance))
+		{
+			if (Instance->GetItem()->GetClass() == ItemDef)
+			{
+				++TotalCount;
+			}
+		}
+	}
+
+	return TotalCount;
+}
+
+bool UXIUInventoryComponent::ConsumeItemsByDefinition(TSubclassOf<UXIUItem> ItemDef, int32 NumToConsume)
+{
+	AActor* OwningActor = GetOwner();
+	if (!OwningActor || !OwningActor->HasAuthority())
+	{
+		return false;
+	}
+
+	//@TODO: N squared right now as there's no acceleration structure
+	int32 TotalConsumed = 0;
+	while (TotalConsumed < NumToConsume)
+	{
+		if (UXIUItemStack* Instance = UXIUInventoryComponent::FindFirstItemStackByDefinition(ItemDef))
+		{
+			Inventory.RemoveEntry(Instance);
+			++TotalConsumed;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	return TotalConsumed == NumToConsume;
+}

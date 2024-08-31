@@ -8,16 +8,7 @@
 
 
 class UXIUItemStack;
-
-// Represents a fragment of an item definition
-UCLASS(DefaultToInstanced, EditInlineNew, Abstract)
-class XYLOINVENTORYUTIL_API UXIUItemFragment : public UObject
-{
-	GENERATED_BODY()
-
-public:
-	virtual void OnInstanceCreated(UXIUItemStack* Instance) const {}
-};
+class UXIUItemFragment;
 
 /**
  * 
@@ -29,6 +20,9 @@ class XYLOINVENTORYUTIL_API UXIUItem : public UObject
 
 public:
 	UPROPERTY(EditAnywhere, Category = "Item")
+	FString Name;
+	
+	UPROPERTY(EditAnywhere, Category = "Item", Instanced)
 	TArray<TObjectPtr<UXIUItemFragment>> Fragments;
 
 public:

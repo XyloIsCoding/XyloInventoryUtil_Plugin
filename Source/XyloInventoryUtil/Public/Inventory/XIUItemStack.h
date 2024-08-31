@@ -3,9 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "XIUItemFragment.h"
 #include "UObject/Object.h"
 #include "XIUItemStack.generated.h"
 
+struct FXIUFragments;
+class UXIUItemFragment;
 class UXIUItem;
 /**
  * 
@@ -17,13 +20,25 @@ class XYLOINVENTORYUTIL_API UXIUItemStack : public UObject
 
 public:
 	UXIUItemStack(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+
+
+public:
+	//~UObject interface
+	virtual bool IsSupportedForNetworking() const override { return true; }
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	//~End of UObject interface
 	
 private:
-	UPROPERTY(EditAnywhere, Category = "Item")
+	UPROPERTY(Replicated, EditAnywhere, Category = "Item")
 	UXIUItem* Item;
-	UPROPERTY(EditAnywhere, Category = "Item")
+	UPROPERTY(Replicated, EditAnywhere, Category = "Item")
 	int Count;
+
+protected:
+	UPROPERTY(BlueprintReadOnly, Category = "Item")
+	FXIUFragments Fragments;
+public:
+	UXIUItemFragment* AddFragment(UXIUItemFragment* ItemFragment);
 
 public:
 	void SetItem(UXIUItem* NewItem);
