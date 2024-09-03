@@ -17,7 +17,7 @@ class UXIUItemStack;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /*
- * FLyraInventoryEntry Interface
+ * FXIUInventorySlot Interface
  */
 
 /** A single entry in an inventory */
@@ -32,14 +32,62 @@ private:
 
 public:
 	FXIUInventorySlot()
-	{}
+		: Index(-1),
+		  bLocked(false)
+	{
+	}
 	
+	FXIUInventorySlot(int SlotIndex)
+		: Index(SlotIndex),
+		  bLocked(false)
+	{
+	}
+
 public:
 	FString GetDebugString() const;
 
+/*--------------------------------------------------------------------------------------------------------------------*/
+	/* Index */
+	
+private:
+	int Index;
+public:
+	int GetIndex() const { return Index; }
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+	
+/*--------------------------------------------------------------------------------------------------------------------*/
+	/* Stack */
+	
 private:
 	UPROPERTY()
 	TObjectPtr<UXIUItemStack> Stack = nullptr;
+public:
+	void Clear();
+	bool SetItemStack(TObjectPtr<UXIUItemStack> NewStack);
+	UXIUItemStack* GetItemStack() const { return Stack; }
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+	/* Filter */
+	
+private:
+	TSubclassOf<UXIUItem> Filter;
+public:
+	void SetFilter(TSubclassOf<UXIUItem> NewFilter);
+	TSubclassOf<UXIUItem> GetFilter() const { return Filter; }
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+	
+/*--------------------------------------------------------------------------------------------------------------------*/
+	/* Locked */
+	
+private:
+	bool bLocked;
+public:
+	void SetLocked(bool NewLock);
+	bool GetLocked() const { return bLocked; }
 };
 
 
@@ -66,38 +114,55 @@ public:
 
 	FXIUInventoryList(UActorComponent* InOwnerComponent)
 		: OwnerComponent(InOwnerComponent)
-	{
-	}
+    {
+    }
 
+private:
+	UPROPERTY(NotReplicated)
+	TObjectPtr<UActorComponent> OwnerComponent;
+
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+	/* FFastArraySerializer contract */
+	
 public:
-	//~FFastArraySerializer contract
 	void PreReplicatedRemove(const TArrayView<int32> RemovedIndices, int32 FinalSize);
 	void PostReplicatedAdd(const TArrayView<int32> AddedIndices, int32 FinalSize);
 	void PostReplicatedChange(const TArrayView<int32> ChangedIndices, int32 FinalSize);
-	//~End of FFastArraySerializer contract
 
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
 	{
 		return FFastArraySerializer::FastArrayDeltaSerialize<FXIUInventorySlot, FXIUInventoryList>(Entries, DeltaParms, *this);
 	}
 
-	TArray<UXIUItemStack*> GetAllItems() const;
-
-	UXIUItemStack* AddEntry(TSubclassOf<UXIUItem> ItemClass, int32 StackCount);
-	void AddEntry(UXIUItemStack* Stack);
-
-	void RemoveEntry(UXIUItemStack* Stack);
-
+/*--------------------------------------------------------------------------------------------------------------------*/
+	
+	
 private:
 	void BroadcastChangeMessage(FXIUInventorySlot& Entry, int32 OldCount, int32 NewCount);
 
+
+private:
+	void InitInventory(int Size);
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+	/* Slots Management */
+	
 private:
 	// Replicated list of items
 	UPROPERTY()
 	TArray<FXIUInventorySlot> Entries;
+	
+public:
+	TArray<UXIUItemStack*> GetAllItems() const;
 
-	UPROPERTY(NotReplicated)
-	TObjectPtr<UActorComponent> OwnerComponent;
+	UXIUItemStack* AddItem(TSubclassOf<UXIUItem> ItemClass, int32 StackCount);
+	void AddItemStack(UXIUItemStack* Stack);
+	void RemoveItemStack(UXIUItemStack* Stack);
+	void ClearSlot(int SlotIndex);
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+	
 };
 
 
@@ -146,10 +211,11 @@ public:
 	 */
 
 private:
- 	UPROPERTY(EditDefaultsOnly, Replicated)
+ 	UPROPERTY(Replicated)
  	FXIUInventoryList Inventory;
-
-public:
+	UPROPERTY(EditAnywhere, Category = "Inventory")
+	int InventorySize;
+private:
 	UPROPERTY(EditDefaultsOnly)
 	TArray<TSubclassOf<UXIUItem>> DefaultItems;
 

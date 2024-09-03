@@ -26,6 +26,46 @@ FString FXIUInventorySlot::GetDebugString() const
 	return FString::Printf(TEXT("%s (%d x %s)"), *GetNameSafe(Stack), Stack->GetCount(), *GetNameSafe(Item));
 }
 
+/*--------------------------------------------------------------------------------------------------------------------*/
+/* Stack */
+
+void FXIUInventorySlot::Clear()
+{
+	Stack = nullptr;
+}
+
+bool FXIUInventorySlot::SetItemStack(TObjectPtr<UXIUItemStack> NewStack)
+{
+	if (bLocked) return false;
+	
+	if (!Filter || !NewStack || NewStack->GetItem() && NewStack->GetItem()->IsA(Filter))
+	{
+		Stack = NewStack;
+		return true;
+	}
+	return false;
+}
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+/* Filter */
+
+void FXIUInventorySlot::SetFilter(TSubclassOf<UXIUItem> NewFilter)
+{
+	Filter = NewFilter;
+}
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+	
+/*--------------------------------------------------------------------------------------------------------------------*/
+/* Locked */
+
+void FXIUInventorySlot::SetLocked(bool NewLock)
+{
+	bLocked = NewLock;
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -33,6 +73,9 @@ FString FXIUInventorySlot::GetDebugString() const
  * FXIUInventory Interface
  */
 
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+/* FFastArraySerializer contract */
 
 void FXIUInventoryList::PreReplicatedRemove(const TArrayView<int32> RemovedIndices, int32 FinalSize)
 {
@@ -45,6 +88,24 @@ void FXIUInventoryList::PostReplicatedAdd(const TArrayView<int32> AddedIndices, 
 void FXIUInventoryList::PostReplicatedChange(const TArrayView<int32> ChangedIndices, int32 FinalSize)
 {
 }
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+
+void FXIUInventoryList::BroadcastChangeMessage(FXIUInventorySlot& Entry, int32 OldCount, int32 NewCount)
+{
+}
+
+void FXIUInventoryList::InitInventory(int Size)
+{
+	Entries.Empty();
+	for (int i = 0; i < Size ; i++)
+	{
+		Entries.Add(FXIUInventorySlot(i));
+	}
+}
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+/* Slots Management */
 
 TArray<UXIUItemStack*> FXIUInventoryList::GetAllItems() const
 {
@@ -60,7 +121,7 @@ TArray<UXIUItemStack*> FXIUInventoryList::GetAllItems() const
 	return Results;
 }
 
-UXIUItemStack* FXIUInventoryList::AddEntry(TSubclassOf<UXIUItem> ItemClass, int32 StackCount)
+UXIUItemStack* FXIUInventoryList::AddItem(TSubclassOf<UXIUItem> ItemClass, int32 StackCount)
 {
 	UXIUItemStack* Result = nullptr;
 
@@ -90,12 +151,12 @@ UXIUItemStack* FXIUInventoryList::AddEntry(TSubclassOf<UXIUItem> ItemClass, int3
 	return Result;
 }
 
-void FXIUInventoryList::AddEntry(UXIUItemStack* Stack)
+void FXIUInventoryList::AddItemStack(UXIUItemStack* Stack)
 {
 	unimplemented();
 }
 
-void FXIUInventoryList::RemoveEntry(UXIUItemStack* Stack)
+void FXIUInventoryList::RemoveItemStack(UXIUItemStack* Stack)
 {
 	for (auto EntryIt = Entries.CreateIterator(); EntryIt; ++EntryIt)
 	{
@@ -108,10 +169,18 @@ void FXIUInventoryList::RemoveEntry(UXIUItemStack* Stack)
 	}
 }
 
-void FXIUInventoryList::BroadcastChangeMessage(FXIUInventorySlot& Entry, int32 OldCount, int32 NewCount)
+void FXIUInventoryList::ClearSlot(int SlotIndex)
 {
+	for (FXIUInventorySlot& Slot : Entries)
+	{
+		if (Slot.GetIndex() == SlotIndex)
+		{
+			Slot.Clear();
+		}
+	}
 }
 
+/*--------------------------------------------------------------------------------------------------------------------*/
 
 
 
@@ -126,8 +195,6 @@ UXIUInventoryComponent::UXIUInventoryComponent(const FObjectInitializer& ObjectI
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	SetIsReplicatedByDefault(true);
-
-	//Inventory = FXIUInventoryList::FXIUInventory(3);
 }
 
 
@@ -183,6 +250,9 @@ void UXIUInventoryComponent::ReadyForReplication()
 void UXIUInventoryComponent::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	Inventory.InitInventory(FMath::Min(InventorySize, DefaultItems.Num()));
+	AddDefaultItems();
 }
 
 void UXIUInventoryComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -215,7 +285,7 @@ void UXIUInventoryComponent::ServerAddDefaultItems_Implementation()
     	{
     		for (TSubclassOf<UXIUItem> Item : DefaultItems)
     		{
-    			Inventory.AddEntry(Item, 2);
+    			Inventory.AddItem(Item, 2);
     		}
     	}
 }
@@ -244,7 +314,7 @@ UXIUItemStack* UXIUInventoryComponent::AddItemDefinition(TSubclassOf<UXIUItem> I
 	UXIUItemStack* Result = nullptr;
 	if (ItemDef != nullptr)
 	{
-		Result = Inventory.AddEntry(ItemDef, StackCount);
+		Result = Inventory.AddItem(ItemDef, StackCount);
 		
 		if (IsUsingRegisteredSubObjectList() && IsReadyForReplication() && Result)
 		{
@@ -256,7 +326,7 @@ UXIUItemStack* UXIUInventoryComponent::AddItemDefinition(TSubclassOf<UXIUItem> I
 
 void UXIUInventoryComponent::AddItemInstance(UXIUItemStack* ItemInstance)
 {
-	Inventory.AddEntry(ItemInstance);
+	Inventory.AddItemStack(ItemInstance);
 	if (IsUsingRegisteredSubObjectList() && IsReadyForReplication() && ItemInstance)
 	{
 		AddReplicatedSubObject(ItemInstance);
@@ -265,7 +335,7 @@ void UXIUInventoryComponent::AddItemInstance(UXIUItemStack* ItemInstance)
 
 void UXIUInventoryComponent::RemoveItemInstance(UXIUItemStack* ItemInstance)
 {
-	Inventory.RemoveEntry(ItemInstance);
+	Inventory.RemoveItemStack(ItemInstance);
 
 	if (ItemInstance && IsUsingRegisteredSubObjectList())
 	{
@@ -329,7 +399,7 @@ bool UXIUInventoryComponent::ConsumeItemsByDefinition(TSubclassOf<UXIUItem> Item
 	{
 		if (UXIUItemStack* Instance = UXIUInventoryComponent::FindFirstItemStackByDefinition(ItemDef))
 		{
-			Inventory.RemoveEntry(Instance);
+			Inventory.RemoveItemStack(Instance);
 			++TotalConsumed;
 		}
 		else
