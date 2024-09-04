@@ -29,24 +29,28 @@ public:
 	//~End of UObject interface
 	
 private:
-	UPROPERTY(Replicated, EditAnywhere, Category = "Item")
-	UXIUItem* Item;
-	UPROPERTY(Replicated, EditAnywhere, Category = "Item")
-	int Count;
+	UPROPERTY(Replicated)
+	const UXIUItem* Item;
 
 protected:
-	UPROPERTY(BlueprintReadOnly, Category = "Item")
+	UPROPERTY(BlueprintReadOnly, Replicated, Category = "Item")
 	FXIUFragments Fragments;
 public:
 	UXIUItemFragment* AddFragment(UXIUItemFragment* ItemFragment);
 
 public:
-	void SetItem(UXIUItem* NewItem);
-	UXIUItem* GetItem() const;
+	UFUNCTION(BlueprintCallable, Category = "Item")
+	void SetItem(const UXIUItem* NewItem);
+	UFUNCTION(BlueprintCallable, Category = "Item")
+	const UXIUItem* GetItem() const;
+	UFUNCTION(BlueprintCallable, Category = "Item")
 	int GetCount();
+	UFUNCTION(BlueprintCallable, Category = "Item")
 	void SetCount(int NewCount);
-	void AddCount(int AddCount);
+	/** @return count actually added */
+	UFUNCTION(BlueprintCallable, Category = "Item")
+	int AddCount(int AddCount);
 
-private:
-	void AddFragments();
+
+	UXIUItemFragment* FindFragmentByClass(TSubclassOf<UXIUItemFragment> FragmentClass);
 };

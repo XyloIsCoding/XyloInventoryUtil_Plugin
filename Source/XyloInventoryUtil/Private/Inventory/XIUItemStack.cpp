@@ -3,11 +3,13 @@
 
 #include "Inventory/XIUItemStack.h"
 
+#include "Inventory/Fragment/XIUCountFragment.h"
 #include "Net/UnrealNetwork.h"
 
 UXIUItemStack::UXIUItemStack(const FObjectInitializer& ObjectInitializer)
 	:Super(ObjectInitializer)
 {
+	Item = nullptr;
 }
 
 void UXIUItemStack::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -15,7 +17,7 @@ void UXIUItemStack::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLif
 	UObject::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(ThisClass, Item)
-	DOREPLIFETIME(ThisClass, Count)
+	DOREPLIFETIME(ThisClass, Fragments)
 }
 
 UXIUItemFragment* UXIUItemStack::AddFragment(UXIUItemFragment* ItemFragment)
@@ -25,31 +27,46 @@ UXIUItemFragment* UXIUItemStack::AddFragment(UXIUItemFragment* ItemFragment)
 	return ItemFragment;
 }
 
-void UXIUItemStack::SetItem(UXIUItem* NewItem)
+void UXIUItemStack::SetItem(const UXIUItem* NewItem)
 {
 	Item = NewItem;
 }
 
-UXIUItem* UXIUItemStack::GetItem() const
+const UXIUItem* UXIUItemStack::GetItem() const
 {
 	return Item;
 }
 
 int UXIUItemStack::GetCount()
 {
-	return Count;
+	if (const UXIUCountFragment* CountFragment = Cast<UXIUCountFragment>(FindFragmentByClass(UXIUCountFragment::StaticClass())))
+	{
+		return CountFragment->Count;
+	}
+	return -1;
 }
 
 void UXIUItemStack::SetCount(int NewCount)
 {
-	Count = NewCount;
+	if (UXIUCountFragment* CountFragment = Cast<UXIUCountFragment>(FindFragmentByClass(UXIUCountFragment::StaticClass())))
+	{
+		CountFragment->Count = FMath::Clamp(NewCount, 0, CountFragment->MaxCount);
+	}
 }
 
-void UXIUItemStack::AddCount(int AddCount)
+int UXIUItemStack::AddCount(int AddCount)
 {
-	Count += AddCount;
+	if (UXIUCountFragment* CountFragment = Cast<UXIUCountFragment>(FindFragmentByClass(UXIUCountFragment::StaticClass())))
+	{
+		int PrevCount = CountFragment->Count;
+		CountFragment->Count = FMath::Clamp(CountFragment->Count + AddCount, 0, CountFragment->MaxCount);
+		return CountFragment->Count - PrevCount;
+	}
+	return 0;
 }
 
-void UXIUItemStack::AddFragments()
+UXIUItemFragment* UXIUItemStack::FindFragmentByClass(TSubclassOf<UXIUItemFragment> FragmentClass)
 {
+	return Fragments.GetFragment(FragmentClass);
 }
+

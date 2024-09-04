@@ -6,15 +6,36 @@
 
 void FXIUFragments::AddFragment(UXIUItemFragment* Fragment)
 {
-	Fragments.Add(Fragment->GetFragmentTag(), Fragment);
+	Fragments.Add(Fragment);
 }
 
-void FXIUFragments::RemoveFragment(FGameplayTag FragmentTag)
+void FXIUFragments::RemoveFragment(TSubclassOf<UXIUItemFragment> FragmentClass)
 {
-	Fragments.Remove(FragmentTag);
+	if (FragmentClass != nullptr)
+	{
+		for (auto FragmentIt = Fragments.CreateIterator(); FragmentIt; ++FragmentIt)
+		{
+			UXIUItemFragment* Fragment = *FragmentIt;
+			if (Fragment && Fragment->IsA(FragmentClass))
+			{
+				FragmentIt.RemoveCurrent();
+			}
+		}
+	}
 }
 
-UXIUItemFragment* FXIUFragments::GetFragment(FGameplayTag FragmentTag)
+UXIUItemFragment* FXIUFragments::GetFragment(TSubclassOf<UXIUItemFragment> FragmentClass)
 {
-	return *Fragments.Find(FragmentTag);
+	if (FragmentClass != nullptr)
+	{
+		for (UXIUItemFragment* Fragment : Fragments)
+		{
+			if (Fragment && Fragment->IsA(FragmentClass))
+			{
+				return Fragment;
+			}
+		}
+	}
+
+	return nullptr;
 }

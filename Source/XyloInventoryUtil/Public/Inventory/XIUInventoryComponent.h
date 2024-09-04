@@ -141,6 +141,8 @@ public:
 private:
 	void BroadcastChangeMessage(FXIUInventorySlot& Entry, int32 OldCount, int32 NewCount);
 
+private:
+	bool CanManipulateInventory();
 
 private:
 	void InitInventory(int Size);
@@ -158,7 +160,7 @@ public:
 
 	UXIUItemStack* AddItem(TSubclassOf<UXIUItem> ItemClass, int32 StackCount);
 	void AddItemStack(UXIUItemStack* Stack);
-	void RemoveItemStack(UXIUItemStack* Stack);
+	void RemoveCountFromItemStack(UXIUItemStack* Stack, int32 StackCount);
 	void ClearSlot(int SlotIndex);
 
 /*--------------------------------------------------------------------------------------------------------------------*/

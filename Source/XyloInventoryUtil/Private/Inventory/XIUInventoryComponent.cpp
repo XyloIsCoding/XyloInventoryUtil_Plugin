@@ -4,6 +4,7 @@
 #include "Inventory/XIUInventoryComponent.h"
 
 #include "Engine/ActorChannel.h"
+#include "Inventory/XIUInventoryFunctionLibrary.h"
 #include "Inventory/XIUItemStack.h"
 #include "Net/UnrealNetwork.h"
 
@@ -95,13 +96,25 @@ void FXIUInventoryList::BroadcastChangeMessage(FXIUInventorySlot& Entry, int32 O
 {
 }
 
+bool FXIUInventoryList::CanManipulateInventory()
+{
+	if (!OwnerComponent) return false;
+	AActor* OwningActor = OwnerComponent->GetOwner();
+	if (!OwningActor->HasAuthority()) return false;
+	return true;
+}
+
 void FXIUInventoryList::InitInventory(int Size)
 {
+	check(CanManipulateInventory());
+	
 	Entries.Empty();
+	Entries.Reserve(Size);
 	for (int i = 0; i < Size ; i++)
 	{
 		Entries.Add(FXIUInventorySlot(i));
 	}
+	MarkArrayDirty();
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -111,11 +124,11 @@ TArray<UXIUItemStack*> FXIUInventoryList::GetAllItems() const
 {
 	TArray<UXIUItemStack*> Results;
 	Results.Reserve(Entries.Num());
-	for (const FXIUInventorySlot& Entry : Entries)
+	for (const FXIUInventorySlot& Slot : Entries)
 	{
-		if (Entry.Stack != nullptr) //@TODO: Would prefer to not deal with this here and hide it further?
+		if (Slot.Stack != nullptr) //@TODO: Would prefer to not deal with this here and hide it further?
 		{
-			Results.Add(Entry.Stack);
+			Results.Add(Slot.Stack);
 		}
 	}
 	return Results;
@@ -126,51 +139,69 @@ UXIUItemStack* FXIUInventoryList::AddItem(TSubclassOf<UXIUItem> ItemClass, int32
 	UXIUItemStack* Result = nullptr;
 
 	check(ItemClass != nullptr);
-	check(OwnerComponent);
+	check(CanManipulateInventory());
 
-	AActor* OwningActor = OwnerComponent->GetOwner();
-	check(OwningActor->HasAuthority());
-
-
-	FXIUInventorySlot& NewEntry = Entries.AddDefaulted_GetRef();
-	NewEntry.Stack = NewObject<UXIUItemStack>(OwnerComponent->GetOwner());  //@TODO: Using the actor instead of component as the outer due to UE-127172
-	NewEntry.Stack->SetItem(ItemClass.GetDefaultObject());
-	for (UXIUItemFragment* Fragment : GetDefault<UXIUItem>(ItemClass)->Fragments)
+	UE_LOG(LogTemp, Warning, TEXT("--AddItem--"))
+	int RemainingCount = StackCount;
+	
+	for (FXIUInventorySlot& Slot : Entries)
 	{
-		if (Fragment != nullptr)
+		if (Slot.GetItemStack() && Slot.GetItemStack()->GetItem() && Slot.GetItemStack()->GetItem()->GetClass() == ItemClass)
 		{
-			NewEntry.Stack->AddFragment(Fragment);
+			RemainingCount -= Slot.GetItemStack()->AddCount(StackCount);
+			UE_LOG(LogTemp, Warning, TEXT("try add to existing stack (+ %i) : Remaining %i, Count %i"), StackCount, RemainingCount, Slot.GetItemStack()->GetCount())
+			if (RemainingCount <= 0) break;
 		}
 	}
-	NewEntry.Stack->SetCount(StackCount);
-	Result = NewEntry.Stack;
 
-	//const ULyraInventoryItemDefinition* ItemCDO = GetDefault<ULyraInventoryItemDefinition>(ItemDef);
-	MarkItemDirty(NewEntry);
+	// TODO: RemainingCount might be > then MaxCount. in that case i need to add multiple stacks (the function should return array of itemStacks to add all of them as subobjects)
+	if (RemainingCount > 0)
+	{
+		Result = UXIUInventoryFunctionLibrary::MakeItemStackFromItem(OwnerComponent, ItemClass);
+		Result->SetCount(RemainingCount);
+		
+		for (FXIUInventorySlot& Slot : Entries)
+		{
+			if (Slot.GetItemStack() == nullptr)
+			{
+				Slot.SetItemStack(Result);
+				UE_LOG(LogTemp, Warning, TEXT("added new stack"))
+				MarkItemDirty(Slot);
+				break;
+			}
+		}
+	}
 
 	return Result;
 }
 
 void FXIUInventoryList::AddItemStack(UXIUItemStack* Stack)
 {
+	check(Stack != nullptr);
+	check(CanManipulateInventory());
+	
 	unimplemented();
 }
 
-void FXIUInventoryList::RemoveItemStack(UXIUItemStack* Stack)
+void FXIUInventoryList::RemoveCountFromItemStack(UXIUItemStack* Stack, int32 StackCount)
 {
-	for (auto EntryIt = Entries.CreateIterator(); EntryIt; ++EntryIt)
+	check(Stack != nullptr);
+	check(CanManipulateInventory());
+	
+	for (FXIUInventorySlot& Slot : Entries)
 	{
-		FXIUInventorySlot& Entry = *EntryIt;
-		if (Entry.Stack == Stack)
+		if (Slot.Stack == Stack)
 		{
-			EntryIt.RemoveCurrent();
-			MarkArrayDirty();
+			int OldCount = Slot.Stack->GetCount();
+			Slot.Stack->SetCount(OldCount - 1);
 		}
 	}
 }
 
 void FXIUInventoryList::ClearSlot(int SlotIndex)
 {
+	check(CanManipulateInventory());
+	
 	for (FXIUInventorySlot& Slot : Entries)
 	{
 		if (Slot.GetIndex() == SlotIndex)
@@ -250,9 +281,12 @@ void UXIUInventoryComponent::ReadyForReplication()
 void UXIUInventoryComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	Inventory.InitInventory(FMath::Min(InventorySize, DefaultItems.Num()));
-	AddDefaultItems();
+
+	if (GetOwner()->HasAuthority())
+	{
+		Inventory.InitInventory(FMath::Max(InventorySize, DefaultItems.Num()));
+		AddDefaultItems();
+	}
 }
 
 void UXIUInventoryComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -282,16 +316,17 @@ void UXIUInventoryComponent::AddDefaultItems()
 void UXIUInventoryComponent::ServerAddDefaultItems_Implementation()
 {
 	if (GetOwner() && GetOwner()->HasAuthority())
+    {
+    	for (TSubclassOf<UXIUItem> Item : DefaultItems)
     	{
-    		for (TSubclassOf<UXIUItem> Item : DefaultItems)
-    		{
-    			Inventory.AddItem(Item, 2);
-    		}
+    		AddItemDefinition(Item, 2);
     	}
+    }
 }
 
 void UXIUInventoryComponent::PrintItems()
 {
+	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, FString::Printf(TEXT("Inventory Size: %i"), Inventory.Entries.Num()));
 	for (UXIUItemStack* Stack : Inventory.GetAllItems())
 	{
 		GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, FString::Printf(TEXT("Item: %s  ;  Count %i"), *Stack->GetItem()->Name, Stack->GetCount()));
@@ -335,7 +370,7 @@ void UXIUInventoryComponent::AddItemInstance(UXIUItemStack* ItemInstance)
 
 void UXIUInventoryComponent::RemoveItemInstance(UXIUItemStack* ItemInstance)
 {
-	Inventory.RemoveItemStack(ItemInstance);
+	Inventory.RemoveCountFromItemStack(ItemInstance, 1);
 
 	if (ItemInstance && IsUsingRegisteredSubObjectList())
 	{
@@ -399,7 +434,7 @@ bool UXIUInventoryComponent::ConsumeItemsByDefinition(TSubclassOf<UXIUItem> Item
 	{
 		if (UXIUItemStack* Instance = UXIUInventoryComponent::FindFirstItemStackByDefinition(ItemDef))
 		{
-			Inventory.RemoveItemStack(Instance);
+			Inventory.RemoveCountFromItemStack(Instance, 1);
 			++TotalConsumed;
 		}
 		else

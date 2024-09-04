@@ -19,13 +19,13 @@ struct FXIUFragments
 
 protected:
 	UPROPERTY(EditAnywhere, Category = "Item")
-	TMap<FGameplayTag, TObjectPtr<UXIUItemFragment>> Fragments;
+	TArray<TObjectPtr<UXIUItemFragment>> Fragments;
 	
 public:
 	void AddFragment(UXIUItemFragment* Fragment);
-	void RemoveFragment(FGameplayTag FragmentTag);
+	void RemoveFragment(TSubclassOf<UXIUItemFragment> FragmentClass);
 
-	UXIUItemFragment* GetFragment(FGameplayTag FragmentTag);
+	UXIUItemFragment* GetFragment(TSubclassOf<UXIUItemFragment> FragmentClass);
 };
 
 
@@ -38,11 +38,6 @@ class XYLOINVENTORYUTIL_API UXIUItemFragment : public UObject
 {
 	GENERATED_BODY()
 
-private:
-	FGameplayTag FragmentTag;
-public:
-	FORCEINLINE FGameplayTag GetFragmentTag() const { return FragmentTag; }
-	
 public:
 	virtual void OnInstanceCreated(UXIUItemStack* Instance) const {}
 };

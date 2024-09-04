@@ -16,8 +16,8 @@ class XYLOINVENTORYUTIL_API UXIUCountFragment : public UXIUItemFragment
 
 public:
 	UPROPERTY(EditAnywhere)
-	float MaxCount;
+	int MaxCount;
 	
 	UPROPERTY(EditAnywhere)
-	float Count;
+	int Count;
 };

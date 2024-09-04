@@ -24,7 +24,4 @@ public:
 	
 	UPROPERTY(EditAnywhere, Category = "Item", Instanced)
 	TArray<TObjectPtr<UXIUItemFragment>> Fragments;
-
-public:
-	UXIUItemStack* CreateItemStack();
 };
