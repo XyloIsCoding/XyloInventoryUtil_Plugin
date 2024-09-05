@@ -157,7 +157,7 @@ UXIUItemStack* FXIUInventoryList::AddItem(TSubclassOf<UXIUItem> ItemClass, int32
 	// TODO: RemainingCount might be > then MaxCount. in that case i need to add multiple stacks (the function should return array of itemStacks to add all of them as subobjects)
 	if (RemainingCount > 0)
 	{
-		Result = UXIUInventoryFunctionLibrary::MakeItemStackFromItem(OwnerComponent, ItemClass);
+		Result = UXIUInventoryFunctionLibrary::MakeItemStackFromItem(OwnerComponent->GetOwner(), ItemClass);  //@TODO: Using the actor instead of component as the outer due to UE-127172
 		Result->SetCount(RemainingCount);
 		
 		for (FXIUInventorySlot& Slot : Entries)
@@ -246,6 +246,14 @@ bool UXIUInventoryComponent::ReplicateSubobjects(UActorChannel* Channel, FOutBun
 		if (Instance && IsValid(Instance))
 		{
 			WroteSomething |= Channel->ReplicateSubobject(Instance, *Bunch, *RepFlags);
+			
+			for (UXIUItemFragment* Fragment : Instance->GetAllFragments())
+			{
+				if (IsValid(Fragment))
+				{
+					WroteSomething |= Channel->ReplicateSubobject(Fragment, *Bunch, *RepFlags);
+				}
+			}
 		}
 	}
 
@@ -265,6 +273,10 @@ void UXIUInventoryComponent::ReadyForReplication()
 
 			if (IsValid(Instance))
 			{
+				for (auto Fragment : Instance->GetAllFragments())
+				{
+					if (Fragment) AddReplicatedSubObject(Fragment);
+				}
 				AddReplicatedSubObject(Instance);
 			}
 		}
@@ -329,7 +341,7 @@ void UXIUInventoryComponent::PrintItems()
 	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, FString::Printf(TEXT("Inventory Size: %i"), Inventory.Entries.Num()));
 	for (UXIUItemStack* Stack : Inventory.GetAllItems())
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, FString::Printf(TEXT("Item: %s  ;  Count %i"), *Stack->GetItem()->Name, Stack->GetCount()));
+		GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, FString::Printf(TEXT("Item: %s  ;  Count %i (TestCount: %i) ; Fragments: %i"), *Stack->GetItem()->Name, Stack->GetCount(), Stack->TestCount, Stack->GetAllFragments().Num()));
 	}
 }
 
@@ -353,6 +365,10 @@ UXIUItemStack* UXIUInventoryComponent::AddItemDefinition(TSubclassOf<UXIUItem> I
 		
 		if (IsUsingRegisteredSubObjectList() && IsReadyForReplication() && Result)
 		{
+			for (auto Fragment : Result->GetAllFragments())
+			{
+				if (Fragment) AddReplicatedSubObject(Fragment);
+			}
 			AddReplicatedSubObject(Result);
 		}
 	}
@@ -365,6 +381,10 @@ void UXIUInventoryComponent::AddItemInstance(UXIUItemStack* ItemInstance)
 	if (IsUsingRegisteredSubObjectList() && IsReadyForReplication() && ItemInstance)
 	{
 		AddReplicatedSubObject(ItemInstance);
+		for (auto Fragment : ItemInstance->GetAllFragments())
+		{
+			if (Fragment) AddReplicatedSubObject(Fragment);
+		}
 	}
 }
 
@@ -375,6 +395,10 @@ void UXIUInventoryComponent::RemoveItemInstance(UXIUItemStack* ItemInstance)
 	if (ItemInstance && IsUsingRegisteredSubObjectList())
 	{
 		RemoveReplicatedSubObject(ItemInstance);
+		for (auto Fragment : ItemInstance->GetAllFragments())
+		{
+			if (Fragment) RemoveReplicatedSubObject(Fragment);
+		}
 	}
 }
 

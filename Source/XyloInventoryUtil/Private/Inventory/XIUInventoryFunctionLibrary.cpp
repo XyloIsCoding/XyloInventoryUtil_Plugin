@@ -16,7 +16,8 @@ UXIUItemStack* UXIUInventoryFunctionLibrary::MakeItemStackFromItem(UObject* Oute
 	{
 		if (Fragment != nullptr)
 		{
-			ItemStack->AddFragment(Fragment);
+			UXIUItemFragment* NewFragment = DuplicateObject<UXIUItemFragment>(Fragment, Outer);
+			ItemStack->AddFragment(NewFragment);
 		}
 	}
 	

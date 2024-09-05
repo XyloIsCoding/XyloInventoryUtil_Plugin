@@ -22,11 +22,25 @@ public:
 	UXIUItemStack(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	/*
+	 * UObject Interface
+	 */
+
 public:
-	//~UObject interface
 	virtual bool IsSupportedForNetworking() const override { return true; }
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	//~End of UObject interface
+
+	/* Fragments replication */
+	
+	virtual bool ReplicateSubobjects(class UActorChannel* Channel, class FOutBunch* Bunch, FReplicationFlags* RepFlags);
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	/*
+	 * ItemStack
+	 */
 	
 private:
 	UPROPERTY(Replicated)
@@ -37,6 +51,7 @@ protected:
 	FXIUFragments Fragments;
 public:
 	UXIUItemFragment* AddFragment(UXIUItemFragment* ItemFragment);
+	TArray<TObjectPtr<UXIUItemFragment>> GetAllFragments() const { return Fragments.GetAllFragments(); }
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Item")
@@ -51,6 +66,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Item")
 	int AddCount(int AddCount);
 
+	UPROPERTY(Replicated)
+	int TestCount;
 
 	UXIUItemFragment* FindFragmentByClass(TSubclassOf<UXIUItemFragment> FragmentClass);
 };

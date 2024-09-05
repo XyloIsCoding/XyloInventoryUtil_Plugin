@@ -3,6 +3,7 @@
 
 #include "Inventory/XIUItemStack.h"
 
+#include "Engine/ActorChannel.h"
 #include "Inventory/Fragment/XIUCountFragment.h"
 #include "Net/UnrealNetwork.h"
 
@@ -12,16 +13,46 @@ UXIUItemStack::UXIUItemStack(const FObjectInitializer& ObjectInitializer)
 	Item = nullptr;
 }
 
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/*
+ * UObject Interface
+ */
+
 void UXIUItemStack::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	UObject::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(ThisClass, Item)
 	DOREPLIFETIME(ThisClass, Fragments)
+	DOREPLIFETIME(ThisClass, TestCount)
 }
+
+bool UXIUItemStack::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags)
+{
+	bool bWroteSomething = false;
+
+	for (auto Fragment : Fragments.GetAllFragments())
+	{
+		if (Fragment)
+		{
+			bWroteSomething |= Channel->ReplicateSubobject(Fragment, *Bunch, *RepFlags);
+		}
+	}
+
+	return bWroteSomething;	
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/*
+ * ItemStack
+ */
 
 UXIUItemFragment* UXIUItemStack::AddFragment(UXIUItemFragment* ItemFragment)
 {
+	checkf(ItemFragment, TEXT("Tried to add a null fragment"));
 	Fragments.AddFragment(ItemFragment);
 	ItemFragment->OnInstanceCreated(this);
 	return ItemFragment;
@@ -51,6 +82,7 @@ void UXIUItemStack::SetCount(int NewCount)
 	if (UXIUCountFragment* CountFragment = Cast<UXIUCountFragment>(FindFragmentByClass(UXIUCountFragment::StaticClass())))
 	{
 		CountFragment->Count = FMath::Clamp(NewCount, 0, CountFragment->MaxCount);
+		TestCount = CountFragment->Count;
 	}
 }
 
@@ -60,6 +92,7 @@ int UXIUItemStack::AddCount(int AddCount)
 	{
 		int PrevCount = CountFragment->Count;
 		CountFragment->Count = FMath::Clamp(CountFragment->Count + AddCount, 0, CountFragment->MaxCount);
+		TestCount = CountFragment->Count;
 		return CountFragment->Count - PrevCount;
 	}
 	return 0;

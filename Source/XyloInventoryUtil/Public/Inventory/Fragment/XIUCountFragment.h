@@ -15,9 +15,12 @@ class XYLOINVENTORYUTIL_API UXIUCountFragment : public UXIUItemFragment
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(EditAnywhere)
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	
+public:
+	UPROPERTY(EditAnywhere, Replicated)
 	int MaxCount;
 	
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Replicated)
 	int Count;
 };

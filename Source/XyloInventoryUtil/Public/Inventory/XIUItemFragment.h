@@ -26,6 +26,7 @@ public:
 	void RemoveFragment(TSubclassOf<UXIUItemFragment> FragmentClass);
 
 	UXIUItemFragment* GetFragment(TSubclassOf<UXIUItemFragment> FragmentClass);
+	TArray<TObjectPtr<UXIUItemFragment>> GetAllFragments() const { return Fragments; }
 };
 
 
@@ -38,6 +39,12 @@ class XYLOINVENTORYUTIL_API UXIUItemFragment : public UObject
 {
 	GENERATED_BODY()
 
+public:
+	//~UObject interface
+	virtual bool IsSupportedForNetworking() const override { return true; }
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	//~End of UObject interface
+	
 public:
 	virtual void OnInstanceCreated(UXIUItemStack* Instance) const {}
 };

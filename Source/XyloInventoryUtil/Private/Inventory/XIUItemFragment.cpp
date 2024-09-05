@@ -39,3 +39,8 @@ UXIUItemFragment* FXIUFragments::GetFragment(TSubclassOf<UXIUItemFragment> Fragm
 
 	return nullptr;
 }
+
+void UXIUItemFragment::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	UObject::GetLifetimeReplicatedProps(OutLifetimeProps);
+}
