@@ -25,7 +25,7 @@ public class XyloInventoryUtil : ModuleRules
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
-				"Core", "NetCore", "GameplayTags",
+				"Core", "NetCore", "GameplayTags", "ObjectReplication",
 				// ... add other public dependencies that you statically link with here ...
 			}
 			);

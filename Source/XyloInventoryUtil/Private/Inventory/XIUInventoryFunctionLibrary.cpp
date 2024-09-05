@@ -5,6 +5,7 @@
 
 #include "Inventory/XIUItem.h"
 #include "Inventory/XIUItemStack.h"
+#include "Inventory/Fragment/XIUCountFragment.h"
 
 UXIUItemStack* UXIUInventoryFunctionLibrary::MakeItemStackFromItem(UObject* Outer, TSubclassOf<UXIUItem> ItemClass)
 {
@@ -14,12 +15,20 @@ UXIUItemStack* UXIUInventoryFunctionLibrary::MakeItemStackFromItem(UObject* Oute
 
 	for (UXIUItemFragment* Fragment : Item->Fragments)
 	{
-		if (Fragment != nullptr)
+		if (Fragment)
 		{
 			UXIUItemFragment* NewFragment = DuplicateObject<UXIUItemFragment>(Fragment, Outer);
 			ItemStack->AddFragment(NewFragment);
 		}
 	}
+
+	//if (UXIUCountFragment* CountFrag = Cast<UXIUCountFragment>(Item->Fragments[0]))
+	//{
+	//	ItemStack->TestFragment = DuplicateObject<UXIUCountFragment>(CountFrag, Outer);
+	//}
+
+	ItemStack->TestFragment = NewObject<UXIUCountFragment>(Outer);
+	ItemStack->TestFragment->MaxCount = 10;
 	
 	return ItemStack;
 }

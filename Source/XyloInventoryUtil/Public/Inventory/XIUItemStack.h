@@ -3,10 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ORReplicatedObject.h"
 #include "XIUItemFragment.h"
 #include "UObject/Object.h"
 #include "XIUItemStack.generated.h"
 
+class UXIUCountFragment;
 struct FXIUFragments;
 class UXIUItemFragment;
 class UXIUItem;
@@ -14,7 +16,7 @@ class UXIUItem;
  * 
  */
 UCLASS(BlueprintType)
-class XYLOINVENTORYUTIL_API UXIUItemStack : public UObject
+class XYLOINVENTORYUTIL_API UXIUItemStack : public UORReplicatedObject
 {
 	GENERATED_BODY()
 
@@ -29,12 +31,7 @@ public:
 	 */
 
 public:
-	virtual bool IsSupportedForNetworking() const override { return true; }
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-
-	/* Fragments replication */
-	
-	virtual bool ReplicateSubobjects(class UActorChannel* Channel, class FOutBunch* Bunch, FReplicationFlags* RepFlags);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -46,6 +43,11 @@ private:
 	UPROPERTY(Replicated)
 	const UXIUItem* Item;
 
+public:
+	UPROPERTY(BlueprintReadOnly, Replicated, Category = "Item")
+	UXIUCountFragment* TestFragment;
+
+	
 protected:
 	UPROPERTY(BlueprintReadOnly, Replicated, Category = "Item")
 	FXIUFragments Fragments;

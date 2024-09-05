@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
+#include "ORReplicatedObject.h"
 #include "UObject/Object.h"
 #include "XIUItemFragment.generated.h"
 
@@ -35,13 +36,12 @@ public:
  */
 
 UCLASS(DefaultToInstanced, EditInlineNew, Abstract)
-class XYLOINVENTORYUTIL_API UXIUItemFragment : public UObject
+class XYLOINVENTORYUTIL_API UXIUItemFragment : public UORReplicatedObject
 {
 	GENERATED_BODY()
 
 public:
 	//~UObject interface
-	virtual bool IsSupportedForNetworking() const override { return true; }
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	//~End of UObject interface
 	

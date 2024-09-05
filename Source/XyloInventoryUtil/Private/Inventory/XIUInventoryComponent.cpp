@@ -6,6 +6,7 @@
 #include "Engine/ActorChannel.h"
 #include "Inventory/XIUInventoryFunctionLibrary.h"
 #include "Inventory/XIUItemStack.h"
+#include "Inventory/Fragment/XIUCountFragment.h"
 #include "Net/UnrealNetwork.h"
 
 
@@ -232,61 +233,6 @@ UXIUInventoryComponent::UXIUInventoryComponent(const FObjectInitializer& ObjectI
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /*
- * UObject Interface
- */
-
-bool UXIUInventoryComponent::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags)
-{
-	bool WroteSomething = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
-
-	for (FXIUInventorySlot& Entry : Inventory.Entries)
-	{
-		UXIUItemStack* Instance = Entry.Stack;
-
-		if (Instance && IsValid(Instance))
-		{
-			WroteSomething |= Channel->ReplicateSubobject(Instance, *Bunch, *RepFlags);
-			
-			for (UXIUItemFragment* Fragment : Instance->GetAllFragments())
-			{
-				if (IsValid(Fragment))
-				{
-					WroteSomething |= Channel->ReplicateSubobject(Fragment, *Bunch, *RepFlags);
-				}
-			}
-		}
-	}
-
-	return WroteSomething;
-}
-
-void UXIUInventoryComponent::ReadyForReplication()
-{
-	Super::ReadyForReplication();
-	
-	// Register existing UXIUItemStack
-	if (IsUsingRegisteredSubObjectList())
-	{
-		for (const FXIUInventorySlot& Entry : Inventory.Entries)
-		{
-			UXIUItemStack* Instance = Entry.Stack;
-
-			if (IsValid(Instance))
-			{
-				for (auto Fragment : Instance->GetAllFragments())
-				{
-					if (Fragment) AddReplicatedSubObject(Fragment);
-				}
-				AddReplicatedSubObject(Instance);
-			}
-		}
-	}
-}
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/*
  * UActorComponent Interface
  */
 
@@ -341,7 +287,7 @@ void UXIUInventoryComponent::PrintItems()
 	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, FString::Printf(TEXT("Inventory Size: %i"), Inventory.Entries.Num()));
 	for (UXIUItemStack* Stack : Inventory.GetAllItems())
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, FString::Printf(TEXT("Item: %s  ;  Count %i (TestCount: %i) ; Fragments: %i"), *Stack->GetItem()->Name, Stack->GetCount(), Stack->TestCount, Stack->GetAllFragments().Num()));
+		GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, FString::Printf(TEXT("Item: %s  ;  Count %i (TestCount: %i | tf: %i) ; Fragments: %i"), *Stack->GetItem()->Name, Stack->GetCount(), Stack->TestCount, Stack->TestFragment->Count, Stack->GetAllFragments().Num()));
 	}
 }
 
@@ -365,11 +311,14 @@ UXIUItemStack* UXIUInventoryComponent::AddItemDefinition(TSubclassOf<UXIUItem> I
 		
 		if (IsUsingRegisteredSubObjectList() && IsReadyForReplication() && Result)
 		{
-			for (auto Fragment : Result->GetAllFragments())
+			RegisterReplicatedObject(Result);
+			for (UXIUItemFragment* Fragment : Result->GetAllFragments())
 			{
-				if (Fragment) AddReplicatedSubObject(Fragment);
+				UE_LOG(LogTemp, Warning, TEXT("adding fragment to replicated"))
+				RegisterReplicatedObject(Fragment);
 			}
-			AddReplicatedSubObject(Result);
+			RegisterReplicatedObject(Result->TestFragment);
+			//AddReplicatedSubObject(Result);
 		}
 	}
 	return Result;
@@ -380,11 +329,13 @@ void UXIUInventoryComponent::AddItemInstance(UXIUItemStack* ItemInstance)
 	Inventory.AddItemStack(ItemInstance);
 	if (IsUsingRegisteredSubObjectList() && IsReadyForReplication() && ItemInstance)
 	{
-		AddReplicatedSubObject(ItemInstance);
-		for (auto Fragment : ItemInstance->GetAllFragments())
+		RegisterReplicatedObject(ItemInstance);
+		for (UXIUItemFragment* Fragment : ItemInstance->GetAllFragments())
 		{
-			if (Fragment) AddReplicatedSubObject(Fragment);
+			RegisterReplicatedObject(Fragment);
 		}
+		RegisterReplicatedObject(ItemInstance->TestFragment);
+		//AddReplicatedSubObject(ItemInstance);
 	}
 }
 
@@ -394,11 +345,13 @@ void UXIUInventoryComponent::RemoveItemInstance(UXIUItemStack* ItemInstance)
 
 	if (ItemInstance && IsUsingRegisteredSubObjectList())
 	{
-		RemoveReplicatedSubObject(ItemInstance);
-		for (auto Fragment : ItemInstance->GetAllFragments())
+		UnregisterReplicatedObject(ItemInstance);
+		for (UXIUItemFragment* Fragment : ItemInstance->GetAllFragments())
 		{
-			if (Fragment) RemoveReplicatedSubObject(Fragment);
+			UnregisterReplicatedObject(Fragment);
 		}
+		UnregisterReplicatedObject(ItemInstance->TestFragment);
+		//RemoveReplicatedSubObject(ItemInstance);
 	}
 }
 

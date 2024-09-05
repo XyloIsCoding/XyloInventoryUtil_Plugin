@@ -27,21 +27,7 @@ void UXIUItemStack::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLif
 	DOREPLIFETIME(ThisClass, Item)
 	DOREPLIFETIME(ThisClass, Fragments)
 	DOREPLIFETIME(ThisClass, TestCount)
-}
-
-bool UXIUItemStack::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags)
-{
-	bool bWroteSomething = false;
-
-	for (auto Fragment : Fragments.GetAllFragments())
-	{
-		if (Fragment)
-		{
-			bWroteSomething |= Channel->ReplicateSubobject(Fragment, *Bunch, *RepFlags);
-		}
-	}
-
-	return bWroteSomething;	
+	DOREPLIFETIME(ThisClass, TestFragment)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -83,6 +69,7 @@ void UXIUItemStack::SetCount(int NewCount)
 	{
 		CountFragment->Count = FMath::Clamp(NewCount, 0, CountFragment->MaxCount);
 		TestCount = CountFragment->Count;
+		TestFragment->Count = CountFragment->Count;
 	}
 }
 
@@ -93,6 +80,7 @@ int UXIUItemStack::AddCount(int AddCount)
 		int PrevCount = CountFragment->Count;
 		CountFragment->Count = FMath::Clamp(CountFragment->Count + AddCount, 0, CountFragment->MaxCount);
 		TestCount = CountFragment->Count;
+		TestFragment->Count = CountFragment->Count;
 		return CountFragment->Count - PrevCount;
 	}
 	return 0;

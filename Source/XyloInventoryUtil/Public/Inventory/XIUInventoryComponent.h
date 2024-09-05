@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ORManagerComponent.h"
 #include "XIUItem.h"
 #include "Components/ActorComponent.h"
 #include "Net/Serialization/FastArraySerializer.h"
@@ -175,22 +176,12 @@ public:
 
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class XYLOINVENTORYUTIL_API UXIUInventoryComponent : public UActorComponent
+class XYLOINVENTORYUTIL_API UXIUInventoryComponent : public UORManagerComponent
 {
 	GENERATED_BODY()
 
 public:
 	UXIUInventoryComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/*
- * UObject Interface
- */
-
-public:
-	virtual bool ReplicateSubobjects(class UActorChannel* Channel, class FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
-	virtual void ReadyForReplication() override;
 
 	
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -230,7 +221,7 @@ public:
 	
 	UFUNCTION(BlueprintCallable)
 	void PrintItems();
-
+	
 
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category=Inventory)
@@ -253,4 +244,10 @@ public:
 
 	int32 GetTotalItemCountByDefinition(TSubclassOf<UXIUItem> ItemDef) const;
 	bool ConsumeItemsByDefinition(TSubclassOf<UXIUItem> ItemDef, int32 NumToConsume);
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	
 };
