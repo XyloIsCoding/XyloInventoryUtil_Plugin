@@ -3,7 +3,6 @@
 
 #include "Inventory/XIUItemStack.h"
 
-#include "Engine/ActorChannel.h"
 #include "Inventory/Fragment/XIUCountFragment.h"
 #include "Net/UnrealNetwork.h"
 
@@ -26,8 +25,6 @@ void UXIUItemStack::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLif
 
 	DOREPLIFETIME(ThisClass, Item)
 	DOREPLIFETIME(ThisClass, Fragments)
-	DOREPLIFETIME(ThisClass, TestCount)
-	DOREPLIFETIME(ThisClass, TestFragment)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -68,8 +65,6 @@ void UXIUItemStack::SetCount(int NewCount)
 	if (UXIUCountFragment* CountFragment = Cast<UXIUCountFragment>(FindFragmentByClass(UXIUCountFragment::StaticClass())))
 	{
 		CountFragment->Count = FMath::Clamp(NewCount, 0, CountFragment->MaxCount);
-		TestCount = CountFragment->Count;
-		TestFragment->Count = CountFragment->Count;
 	}
 }
 
@@ -79,8 +74,6 @@ int UXIUItemStack::AddCount(int AddCount)
 	{
 		int PrevCount = CountFragment->Count;
 		CountFragment->Count = FMath::Clamp(CountFragment->Count + AddCount, 0, CountFragment->MaxCount);
-		TestCount = CountFragment->Count;
-		TestFragment->Count = CountFragment->Count;
 		return CountFragment->Count - PrevCount;
 	}
 	return 0;

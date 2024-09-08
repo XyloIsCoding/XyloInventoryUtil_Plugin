@@ -135,11 +135,11 @@ TArray<UXIUItemStack*> FXIUInventoryList::GetAllItems() const
 	return Results;
 }
 
-UXIUItemStack* FXIUInventoryList::AddItem(TSubclassOf<UXIUItem> ItemClass, int32 StackCount)
+UXIUItemStack* FXIUInventoryList::AddItem(UXIUItem* Item, int32 StackCount)
 {
 	UXIUItemStack* Result = nullptr;
 
-	check(ItemClass != nullptr);
+	check(Item != nullptr);
 	check(CanManipulateInventory());
 
 	UE_LOG(LogTemp, Warning, TEXT("--AddItem--"))
@@ -147,7 +147,7 @@ UXIUItemStack* FXIUInventoryList::AddItem(TSubclassOf<UXIUItem> ItemClass, int32
 	
 	for (FXIUInventorySlot& Slot : Entries)
 	{
-		if (Slot.GetItemStack() && Slot.GetItemStack()->GetItem() && Slot.GetItemStack()->GetItem()->GetClass() == ItemClass)
+		if (Slot.GetItemStack() && Slot.GetItemStack()->GetItem() == Item)
 		{
 			RemainingCount -= Slot.GetItemStack()->AddCount(StackCount);
 			UE_LOG(LogTemp, Warning, TEXT("try add to existing stack (+ %i) : Remaining %i, Count %i"), StackCount, RemainingCount, Slot.GetItemStack()->GetCount())
@@ -158,7 +158,7 @@ UXIUItemStack* FXIUInventoryList::AddItem(TSubclassOf<UXIUItem> ItemClass, int32
 	// TODO: RemainingCount might be > then MaxCount. in that case i need to add multiple stacks (the function should return array of itemStacks to add all of them as subobjects)
 	if (RemainingCount > 0)
 	{
-		Result = UXIUInventoryFunctionLibrary::MakeItemStackFromItem(OwnerComponent->GetOwner(), ItemClass);  //@TODO: Using the actor instead of component as the outer due to UE-127172
+		Result = UXIUInventoryFunctionLibrary::MakeItemStackFromItem(OwnerComponent->GetOwner(), Item);  //@TODO: Using the actor instead of component as the outer due to UE-127172
 		Result->SetCount(RemainingCount);
 		
 		for (FXIUInventorySlot& Slot : Entries)
@@ -275,7 +275,7 @@ void UXIUInventoryComponent::ServerAddDefaultItems_Implementation()
 {
 	if (GetOwner() && GetOwner()->HasAuthority())
     {
-    	for (TSubclassOf<UXIUItem> Item : DefaultItems)
+    	for (TObjectPtr<UXIUItem> Item : DefaultItems)
     	{
     		AddItemDefinition(Item, 2);
     	}
@@ -287,7 +287,7 @@ void UXIUInventoryComponent::PrintItems()
 	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, FString::Printf(TEXT("Inventory Size: %i"), Inventory.Entries.Num()));
 	for (UXIUItemStack* Stack : Inventory.GetAllItems())
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, FString::Printf(TEXT("Item: %s  ;  Count %i (TestCount: %i | tf: %i) ; Fragments: %i"), *Stack->GetItem()->Name, Stack->GetCount(), Stack->TestCount, Stack->TestFragment->Count, Stack->GetAllFragments().Num()));
+		GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, FString::Printf(TEXT("Item: %s  ;  Count %i ; Fragments: %i"), *Stack->GetItem()->Name, Stack->GetCount(), Stack->GetAllFragments().Num()));
 	}
 }
 
@@ -302,7 +302,7 @@ bool UXIUInventoryComponent::CanAddItemDefinition(TSubclassOf<UXIUItem> ItemDef,
 	return true;
 }
 
-UXIUItemStack* UXIUInventoryComponent::AddItemDefinition(TSubclassOf<UXIUItem> ItemDef, int32 StackCount)
+UXIUItemStack* UXIUInventoryComponent::AddItemDefinition(UXIUItem* ItemDef, int32 StackCount)
 {
 	UXIUItemStack* Result = nullptr;
 	if (ItemDef != nullptr)
@@ -314,11 +314,8 @@ UXIUItemStack* UXIUInventoryComponent::AddItemDefinition(TSubclassOf<UXIUItem> I
 			RegisterReplicatedObject(Result);
 			for (UXIUItemFragment* Fragment : Result->GetAllFragments())
 			{
-				UE_LOG(LogTemp, Warning, TEXT("adding fragment to replicated"))
 				RegisterReplicatedObject(Fragment);
 			}
-			RegisterReplicatedObject(Result->TestFragment);
-			//AddReplicatedSubObject(Result);
 		}
 	}
 	return Result;
@@ -327,6 +324,7 @@ UXIUItemStack* UXIUInventoryComponent::AddItemDefinition(TSubclassOf<UXIUItem> I
 void UXIUInventoryComponent::AddItemInstance(UXIUItemStack* ItemInstance)
 {
 	Inventory.AddItemStack(ItemInstance);
+	
 	if (IsUsingRegisteredSubObjectList() && IsReadyForReplication() && ItemInstance)
 	{
 		RegisterReplicatedObject(ItemInstance);
@@ -334,8 +332,6 @@ void UXIUInventoryComponent::AddItemInstance(UXIUItemStack* ItemInstance)
 		{
 			RegisterReplicatedObject(Fragment);
 		}
-		RegisterReplicatedObject(ItemInstance->TestFragment);
-		//AddReplicatedSubObject(ItemInstance);
 	}
 }
 
@@ -350,10 +346,12 @@ void UXIUInventoryComponent::RemoveItemInstance(UXIUItemStack* ItemInstance)
 		{
 			UnregisterReplicatedObject(Fragment);
 		}
-		UnregisterReplicatedObject(ItemInstance->TestFragment);
-		//RemoveReplicatedSubObject(ItemInstance);
 	}
 }
+
+
+
+
 
 TArray<UXIUItemStack*> UXIUInventoryComponent::GetAllItems() const
 {

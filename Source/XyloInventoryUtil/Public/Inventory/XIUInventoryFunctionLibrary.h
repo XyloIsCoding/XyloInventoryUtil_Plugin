@@ -17,5 +17,5 @@ class XYLOINVENTORYUTIL_API UXIUInventoryFunctionLibrary : public UBlueprintFunc
 	GENERATED_BODY()
 
 public:
-	static UXIUItemStack* MakeItemStackFromItem(UObject* Outer, TSubclassOf<UXIUItem> ItemClass);
+	static UXIUItemStack* MakeItemStackFromItem(UObject* Outer, TObjectPtr<UXIUItem> Item);
 };

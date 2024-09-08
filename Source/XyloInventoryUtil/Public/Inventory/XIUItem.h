@@ -13,8 +13,8 @@ class UXIUItemFragment;
 /**
  * 
  */
-UCLASS(Blueprintable, Const, Abstract)
-class XYLOINVENTORYUTIL_API UXIUItem : public UObject
+UCLASS(Blueprintable, BlueprintType)
+class XYLOINVENTORYUTIL_API UXIUItem : public UDataAsset
 {
 	GENERATED_BODY()
 

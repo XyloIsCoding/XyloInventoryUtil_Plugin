@@ -37,7 +37,7 @@ public:
 	
 private:
 	UPROPERTY(EditAnywhere, Category = Item)
-	TSubclassOf<UXIUItem> DefaultItem;
+	TObjectPtr<UXIUItem> DefaultItem;
 	UPROPERTY(EditAnywhere, Category = Item)
 	int DefaultItemCount;
 	

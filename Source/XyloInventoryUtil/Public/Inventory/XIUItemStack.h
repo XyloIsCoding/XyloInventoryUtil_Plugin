@@ -43,11 +43,6 @@ private:
 	UPROPERTY(Replicated)
 	const UXIUItem* Item;
 
-public:
-	UPROPERTY(BlueprintReadOnly, Replicated, Category = "Item")
-	UXIUCountFragment* TestFragment;
-
-	
 protected:
 	UPROPERTY(BlueprintReadOnly, Replicated, Category = "Item")
 	FXIUFragments Fragments;
@@ -67,9 +62,6 @@ public:
 	/** @return count actually added */
 	UFUNCTION(BlueprintCallable, Category = "Item")
 	int AddCount(int AddCount);
-
-	UPROPERTY(Replicated)
-	int TestCount;
 
 	UXIUItemFragment* FindFragmentByClass(TSubclassOf<UXIUItemFragment> FragmentClass);
 };
