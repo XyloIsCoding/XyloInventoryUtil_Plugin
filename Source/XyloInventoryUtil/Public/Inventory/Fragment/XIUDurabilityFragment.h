@@ -20,5 +20,7 @@ public:
 
 	UPROPERTY(EditAnywhere)
 	float Durability;
-	
+
+public:
+	virtual bool Matches(UXIUItemFragment* Fragment) const override;
 };

@@ -147,10 +147,10 @@ UXIUItemStack* FXIUInventoryList::AddItem(UXIUItem* Item, int32 StackCount)
 	
 	for (FXIUInventorySlot& Slot : Entries)
 	{
-		if (Slot.GetItemStack() && Slot.GetItemStack()->GetItem() == Item)
+		if (Slot.Stack && Slot.Stack->GetItem() == Item)
 		{
-			RemainingCount -= Slot.GetItemStack()->AddCount(StackCount);
-			UE_LOG(LogTemp, Warning, TEXT("try add to existing stack (+ %i) : Remaining %i, Count %i"), StackCount, RemainingCount, Slot.GetItemStack()->GetCount())
+			RemainingCount -= Slot.Stack->AddCount(StackCount);
+			UE_LOG(LogTemp, Warning, TEXT("try add to existing stack (+ %i) : Remaining %i, Count %i"), StackCount, RemainingCount, Slot.Stack->GetCount())
 			if (RemainingCount <= 0) break;
 		}
 	}
@@ -158,12 +158,12 @@ UXIUItemStack* FXIUInventoryList::AddItem(UXIUItem* Item, int32 StackCount)
 	// TODO: RemainingCount might be > then MaxCount. in that case i need to add multiple stacks (the function should return array of itemStacks to add all of them as subobjects)
 	if (RemainingCount > 0)
 	{
-		Result = UXIUInventoryFunctionLibrary::MakeItemStackFromItem(OwnerComponent->GetOwner(), Item);  //@TODO: Using the actor instead of component as the outer due to UE-127172
+		Result = UXIUInventoryFunctionLibrary::MakeItemStackFromItem(OwnerComponent, Item);  //@TODO: Using the actor instead of component as the outer due to UE-127172
 		Result->SetCount(RemainingCount);
 		
 		for (FXIUInventorySlot& Slot : Entries)
 		{
-			if (Slot.GetItemStack() == nullptr)
+			if (Slot.Stack == nullptr)
 			{
 				Slot.SetItemStack(Result);
 				UE_LOG(LogTemp, Warning, TEXT("added new stack"))
@@ -205,7 +205,7 @@ void FXIUInventoryList::ClearSlot(int SlotIndex)
 	
 	for (FXIUInventorySlot& Slot : Entries)
 	{
-		if (Slot.GetIndex() == SlotIndex)
+		if (Slot.Index == SlotIndex)
 		{
 			Slot.Clear();
 		}
@@ -227,6 +227,7 @@ UXIUInventoryComponent::UXIUInventoryComponent(const FObjectInitializer& ObjectI
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	SetIsReplicatedByDefault(true);
+	bReplicateUsingRegisteredSubObjectList = true;
 }
 
 
@@ -312,10 +313,6 @@ UXIUItemStack* UXIUInventoryComponent::AddItemDefinition(UXIUItem* ItemDef, int3
 		if (IsUsingRegisteredSubObjectList() && IsReadyForReplication() && Result)
 		{
 			RegisterReplicatedObject(Result);
-			for (UXIUItemFragment* Fragment : Result->GetAllFragments())
-			{
-				RegisterReplicatedObject(Fragment);
-			}
 		}
 	}
 	return Result;
@@ -328,10 +325,6 @@ void UXIUInventoryComponent::AddItemInstance(UXIUItemStack* ItemInstance)
 	if (IsUsingRegisteredSubObjectList() && IsReadyForReplication() && ItemInstance)
 	{
 		RegisterReplicatedObject(ItemInstance);
-		for (UXIUItemFragment* Fragment : ItemInstance->GetAllFragments())
-		{
-			RegisterReplicatedObject(Fragment);
-		}
 	}
 }
 
@@ -342,10 +335,6 @@ void UXIUInventoryComponent::RemoveItemInstance(UXIUItemStack* ItemInstance)
 	if (ItemInstance && IsUsingRegisteredSubObjectList())
 	{
 		UnregisterReplicatedObject(ItemInstance);
-		for (UXIUItemFragment* Fragment : ItemInstance->GetAllFragments())
-		{
-			UnregisterReplicatedObject(Fragment);
-		}
 	}
 }
 
@@ -419,4 +408,33 @@ bool UXIUInventoryComponent::ConsumeItemsByDefinition(TSubclassOf<UXIUItem> Item
 	}
 
 	return TotalConsumed == NumToConsume;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/*
+ * SubObjects Replication
+ */
+
+bool UXIUInventoryComponent::RegisterReplicatedObject(UObject* ObjectToRegister)
+{
+	if (IsValid(ObjectToRegister))
+	{
+		ReplicatedObjects.AddUnique(ObjectToRegister);
+		AddReplicatedSubObject(ObjectToRegister);
+		return true;
+	}
+	return false;
+}
+
+bool UXIUInventoryComponent::UnregisterReplicatedObject(UObject* ObjectToUnregister)
+{
+	if (IsValid(ObjectToUnregister))
+	{
+		ReplicatedObjects.Remove(ObjectToUnregister);
+		RemoveReplicatedSubObject(ObjectToUnregister);
+		return true;
+	}
+	return false;
 }

@@ -6,6 +6,7 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "XIUInventoryFunctionLibrary.generated.h"
 
+class UXIUInventoryComponent;
 class UXIUItem;
 class UXIUItemStack;
 /**
@@ -17,5 +18,5 @@ class XYLOINVENTORYUTIL_API UXIUInventoryFunctionLibrary : public UBlueprintFunc
 	GENERATED_BODY()
 
 public:
-	static UXIUItemStack* MakeItemStackFromItem(UObject* Outer, TObjectPtr<UXIUItem> Item);
+	static UXIUItemStack* MakeItemStackFromItem(UXIUInventoryComponent* InventoryComponent, TObjectPtr<UXIUItem> Item);
 };

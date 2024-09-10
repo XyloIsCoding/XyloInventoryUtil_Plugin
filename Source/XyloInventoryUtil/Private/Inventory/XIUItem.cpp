@@ -3,6 +3,3 @@
 
 #include "Inventory/XIUItem.h"
 
-#include "Inventory/XIUItemStack.h"
-
-

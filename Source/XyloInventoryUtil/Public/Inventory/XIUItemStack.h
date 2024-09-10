@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "ORReplicatedObject.h"
+#include "XIUItem.h"
 #include "XIUItemFragment.h"
 #include "UObject/Object.h"
 #include "XIUItemStack.generated.h"
@@ -12,11 +12,13 @@ class UXIUCountFragment;
 struct FXIUFragments;
 class UXIUItemFragment;
 class UXIUItem;
+
+
 /**
- * 
+ * Item Stack outer is the owner of the inventory component
  */
 UCLASS(BlueprintType)
-class XYLOINVENTORYUTIL_API UXIUItemStack : public UORReplicatedObject
+class XYLOINVENTORYUTIL_API UXIUItemStack : public UObject
 {
 	GENERATED_BODY()
 
@@ -31,6 +33,7 @@ public:
 	 */
 
 public:
+	virtual bool IsSupportedForNetworking() const override { return true; }
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -38,30 +41,39 @@ public:
 	/*
 	 * ItemStack
 	 */
+
+private:
+	TObjectPtr<UXIUInventoryComponent> OwningInventoryComponent;
+public:
+	void SetOwningInventoryComponent(UXIUInventoryComponent* InventoryComponent);
 	
 private:
 	UPROPERTY(Replicated)
 	const UXIUItem* Item;
-
-protected:
-	UPROPERTY(BlueprintReadOnly, Replicated, Category = "Item")
-	FXIUFragments Fragments;
-public:
-	UXIUItemFragment* AddFragment(UXIUItemFragment* ItemFragment);
-	TArray<TObjectPtr<UXIUItemFragment>> GetAllFragments() const { return Fragments.GetAllFragments(); }
-
 public:
 	UFUNCTION(BlueprintCallable, Category = "Item")
 	void SetItem(const UXIUItem* NewItem);
 	UFUNCTION(BlueprintCallable, Category = "Item")
 	const UXIUItem* GetItem() const;
-	UFUNCTION(BlueprintCallable, Category = "Item")
+
+private:
+	UPROPERTY(Replicated)
+	FXIUFragments Fragments;
+public:
+	TArray<const UXIUItemFragment*> GetAllFragments() const;
+	
+	UFUNCTION(BlueprintCallable, Category = "Fragments")
+	void SetFragment(TSubclassOf<UXIUItemFragment> FragmentClass, UXIUItemFragment* Fragment);
+
+
+
+	
+	UFUNCTION(BlueprintCallable, Category = "Count Fragment")
 	int GetCount();
-	UFUNCTION(BlueprintCallable, Category = "Item")
+	UFUNCTION(BlueprintCallable, Category = "Count Fragment")
 	void SetCount(int NewCount);
 	/** @return count actually added */
-	UFUNCTION(BlueprintCallable, Category = "Item")
+	UFUNCTION(BlueprintCallable, Category = "Count Fragment")
 	int AddCount(int AddCount);
-
-	UXIUItemFragment* FindFragmentByClass(TSubclassOf<UXIUItemFragment> FragmentClass);
+	
 };

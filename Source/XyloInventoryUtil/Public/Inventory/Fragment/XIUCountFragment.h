@@ -23,4 +23,7 @@ public:
 	
 	UPROPERTY(EditAnywhere, Replicated)
 	int Count;
+
+public:
+	virtual bool Matches(UXIUItemFragment* Fragment) const override;
 };

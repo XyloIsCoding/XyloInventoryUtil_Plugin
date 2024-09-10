@@ -3,6 +3,7 @@
 
 #include "Inventory/XIUItemStack.h"
 
+#include "Inventory/XIUItem.h"
 #include "Inventory/Fragment/XIUCountFragment.h"
 #include "Net/UnrealNetwork.h"
 
@@ -33,17 +34,16 @@ void UXIUItemStack::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLif
  * ItemStack
  */
 
-UXIUItemFragment* UXIUItemStack::AddFragment(UXIUItemFragment* ItemFragment)
+void UXIUItemStack::SetOwningInventoryComponent(UXIUInventoryComponent* InventoryComponent)
 {
-	checkf(ItemFragment, TEXT("Tried to add a null fragment"));
-	Fragments.AddFragment(ItemFragment);
-	ItemFragment->OnInstanceCreated(this);
-	return ItemFragment;
+	OwningInventoryComponent = InventoryComponent;
+	Fragments.OwningInventoryComponent = InventoryComponent;
 }
 
 void UXIUItemStack::SetItem(const UXIUItem* NewItem)
 {
 	Item = NewItem;
+	Fragments = FXIUFragments(Item->Fragments);
 }
 
 const UXIUItem* UXIUItemStack::GetItem() const
@@ -51,9 +51,19 @@ const UXIUItem* UXIUItemStack::GetItem() const
 	return Item;
 }
 
+TArray<const UXIUItemFragment*> UXIUItemStack::GetAllFragments() const
+{
+	return Fragments.GetAllFragments();
+}
+
+void UXIUItemStack::SetFragment(TSubclassOf<UXIUItemFragment> FragmentClass, UXIUItemFragment* Fragment)
+{
+	Fragments.Set(FragmentClass, Fragment);
+}
+
 int UXIUItemStack::GetCount()
 {
-	if (const UXIUCountFragment* CountFragment = Cast<UXIUCountFragment>(FindFragmentByClass(UXIUCountFragment::StaticClass())))
+	if (const UXIUCountFragment* CountFragment = Fragments.FindFragmentByClass<UXIUCountFragment>())
 	{
 		return CountFragment->Count;
 	}
@@ -62,15 +72,16 @@ int UXIUItemStack::GetCount()
 
 void UXIUItemStack::SetCount(int NewCount)
 {
-	if (UXIUCountFragment* CountFragment = Cast<UXIUCountFragment>(FindFragmentByClass(UXIUCountFragment::StaticClass())))
+	if (UXIUCountFragment* CountFragment = Fragments.GetOrDefault<UXIUCountFragment>())
 	{
 		CountFragment->Count = FMath::Clamp(NewCount, 0, CountFragment->MaxCount);
+		
 	}
 }
 
 int UXIUItemStack::AddCount(int AddCount)
 {
-	if (UXIUCountFragment* CountFragment = Cast<UXIUCountFragment>(FindFragmentByClass(UXIUCountFragment::StaticClass())))
+	if (UXIUCountFragment* CountFragment = Fragments.GetOrDefault<UXIUCountFragment>())
 	{
 		int PrevCount = CountFragment->Count;
 		CountFragment->Count = FMath::Clamp(CountFragment->Count + AddCount, 0, CountFragment->MaxCount);
@@ -78,9 +89,3 @@ int UXIUItemStack::AddCount(int AddCount)
 	}
 	return 0;
 }
-
-UXIUItemFragment* UXIUItemStack::FindFragmentByClass(TSubclassOf<UXIUItemFragment> FragmentClass)
-{
-	return Fragments.GetFragment(FragmentClass);
-}
-

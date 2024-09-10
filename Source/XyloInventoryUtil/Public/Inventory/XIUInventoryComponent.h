@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "ORManagerComponent.h"
 #include "XIUItem.h"
 #include "Components/ActorComponent.h"
 #include "Net/Serialization/FastArraySerializer.h"
@@ -113,14 +112,14 @@ public:
 	{
 	}
 
-	FXIUInventoryList(UActorComponent* InOwnerComponent)
+	FXIUInventoryList(UXIUInventoryComponent* InOwnerComponent)
 		: OwnerComponent(InOwnerComponent)
     {
     }
 
 private:
 	UPROPERTY(NotReplicated)
-	TObjectPtr<UActorComponent> OwnerComponent;
+	TObjectPtr<UXIUInventoryComponent> OwnerComponent;
 
 
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -176,7 +175,7 @@ public:
 
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class XYLOINVENTORYUTIL_API UXIUInventoryComponent : public UORManagerComponent
+class XYLOINVENTORYUTIL_API UXIUInventoryComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
@@ -250,5 +249,40 @@ public:
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+	/*
+	 * SubObjects Replication
+	 */
+	
+public:
+	
+	/**
+	 * Register a Replicated UObjects to replicate
+	 * 
+	 * @param ObjectToRegister The Replicated UObject to register.
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Object Replication", DisplayName = "Register Replicated UObject")
+	virtual bool RegisterReplicatedObject(UPARAM(DisplayName = "Replicated UObject") UObject* ObjectToRegister);
+
+	/**
+	 * Unregister a Replicated UObject from replication
+	 * 
+	 * @param ObjectToUnregister The Replicated UObject to unregister.
+	 * @param bDestroyObject If the UObject Replication Manager should mark the Replicated UObject as garbage for the garbage collector, after it has unregistered the Replicated UObject.
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Object Replication", DisplayName = "Unregister Replicated UObject")
+	virtual bool UnregisterReplicatedObject(UPARAM(DisplayName = "Replicated UObject") UObject* ObjectToUnregister);
+
+	//Get all the replicated objects that are registered on this manager.
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Object Replication", DisplayName = "Get Registered Replicated UObjects")
+	virtual TArray<UObject*> GetRegisteredReplicatedObjects()
+	{
+		return ReplicatedObjects;
+	};
+
+protected:
+	
+	//All the currently replicated objects
+	UPROPERTY()
+	TArray<UObject*> ReplicatedObjects;
 	
 };

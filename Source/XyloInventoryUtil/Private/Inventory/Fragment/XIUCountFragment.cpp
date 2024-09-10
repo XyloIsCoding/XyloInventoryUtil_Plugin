@@ -12,3 +12,17 @@ void UXIUCountFragment::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 	DOREPLIFETIME(ThisClass, MaxCount);
 	DOREPLIFETIME(ThisClass, Count);
 }
+
+bool UXIUCountFragment::Matches(UXIUItemFragment* Fragment) const
+{
+	if (!Super::Matches(Fragment)) return false;
+	
+	if (const UXIUCountFragment* CountFragment = Cast<UXIUCountFragment>(Fragment))
+	{
+		if (Count == CountFragment->Count && MaxCount == CountFragment->MaxCount)
+		{
+			return true;
+		}
+	}
+	return false;
+}

@@ -22,8 +22,8 @@ void AXIUItemStackActor::BeginPlay()
 {
 	Super::BeginPlay();
 
-	ItemStack = UXIUInventoryFunctionLibrary::MakeItemStackFromItem(this, DefaultItem);
-	ItemStack->SetCount(DefaultItemCount);
+	//ItemStack = UXIUInventoryFunctionLibrary::MakeItemStackFromItem(this, DefaultItem);
+	//ItemStack->SetCount(DefaultItemCount);
 }
 
 

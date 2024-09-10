@@ -3,16 +3,18 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "XIUItemFragment.h"
 #include "UObject/Object.h"
 #include "XIUItem.generated.h"
 
 
+struct FXIUDefaultFragments;
 class UXIUItemStack;
 class UXIUItemFragment;
 
 /**
  * 
- */
+ */ 
 UCLASS(Blueprintable, BlueprintType)
 class XYLOINVENTORYUTIL_API UXIUItem : public UDataAsset
 {
@@ -22,6 +24,6 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Item")
 	FString Name;
 	
-	UPROPERTY(EditAnywhere, Category = "Item", Instanced)
-	TArray<TObjectPtr<UXIUItemFragment>> Fragments;
+	UPROPERTY(EditAnywhere, Category = "Item")
+	FXIUDefaultFragments Fragments;
 };

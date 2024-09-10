@@ -3,31 +3,17 @@
 
 #include "Inventory/XIUInventoryFunctionLibrary.h"
 
+#include "Inventory/XIUInventoryComponent.h"
 #include "Inventory/XIUItem.h"
 #include "Inventory/XIUItemStack.h"
 #include "Inventory/Fragment/XIUCountFragment.h"
 
-UXIUItemStack* UXIUInventoryFunctionLibrary::MakeItemStackFromItem(UObject* Outer, TObjectPtr<UXIUItem> Item)
+UXIUItemStack* UXIUInventoryFunctionLibrary::MakeItemStackFromItem(UXIUInventoryComponent* InventoryComponent, TObjectPtr<UXIUItem> Item)
 {
 	if (!Item) return nullptr;
 	
-	UXIUItemStack* ItemStack = NewObject<UXIUItemStack>(Outer);
+	UXIUItemStack* ItemStack = NewObject<UXIUItemStack>(InventoryComponent->GetOwner());
 	ItemStack->SetItem(Item);
-
-	for (UXIUItemFragment* Fragment : Item->Fragments)
-	{
-		if (Fragment)
-		{
-			if (UXIUItemFragment* NewFragment = DuplicateObject<UXIUItemFragment>(Fragment, Outer))
-			{
-			    // clear this two flags to allow client to update the outer of the duplicated fragment
-				NewFragment->ClearFlags(EObjectFlags::RF_WasLoaded);
-				NewFragment->ClearFlags(EObjectFlags::RF_LoadCompleted);
-				ItemStack->AddFragment(NewFragment);
-				UE_LOG(LogTemp, Warning, TEXT("Fragment added to new stack"))
-			}
-		}
-	}
-	
+	ItemStack->SetOwningInventoryComponent(InventoryComponent);
 	return ItemStack;
 }
