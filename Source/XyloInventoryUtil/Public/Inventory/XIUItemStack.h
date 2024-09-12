@@ -73,10 +73,11 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "Count Fragment")
 	int GetCount();
+	/** @return new count */
 	UFUNCTION(BlueprintCallable, Category = "Count Fragment")
-	void SetCount(int NewCount);
-	/** @return count actually added */
+	int SetCount(int NewCount);
+	/** @return count actually added (or removed if negative) */
 	UFUNCTION(BlueprintCallable, Category = "Count Fragment")
-	int AddCount(int AddCount);
+	int ModifyCount(int AddCount);
 	
 };

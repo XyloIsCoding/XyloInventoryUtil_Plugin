@@ -3,10 +3,8 @@
 
 #include "Inventory/XIUInventoryComponent.h"
 
-#include "Engine/ActorChannel.h"
 #include "Inventory/XIUInventoryFunctionLibrary.h"
 #include "Inventory/XIUItemStack.h"
-#include "Inventory/Fragment/XIUCountFragment.h"
 #include "Net/UnrealNetwork.h"
 
 
@@ -97,7 +95,7 @@ void FXIUInventoryList::BroadcastChangeMessage(FXIUInventorySlot& Entry, int32 O
 {
 }
 
-bool FXIUInventoryList::CanManipulateInventory()
+bool FXIUInventoryList::CanManipulateInventory() const
 {
 	if (!OwnerComponent) return false;
 	AActor* OwningActor = OwnerComponent->GetOwner();
@@ -135,68 +133,159 @@ TArray<UXIUItemStack*> FXIUInventoryList::GetAllItems() const
 	return Results;
 }
 
-UXIUItemStack* FXIUInventoryList::AddItem(UXIUItem* Item, int32 StackCount)
+TArray<UXIUItemStack*> FXIUInventoryList::AddItem(UXIUItem* Item, int32 Count)
 {
-	UXIUItemStack* Result = nullptr;
-
+	checkf(Count > 0, TEXT("Cannot add negative amounts"));
 	check(Item != nullptr);
 	check(CanManipulateInventory());
 
 	UE_LOG(LogTemp, Warning, TEXT("--AddItem--"))
-	int RemainingCount = StackCount;
-	
+	int RemainingCount = Count;
+
+	// add count to existing stacks
 	for (FXIUInventorySlot& Slot : Entries)
 	{
 		if (Slot.Stack && Slot.Stack->GetItem() == Item)
 		{
-			RemainingCount -= Slot.Stack->AddCount(StackCount);
-			UE_LOG(LogTemp, Warning, TEXT("try add to existing stack (+ %i) : Remaining %i, Count %i"), StackCount, RemainingCount, Slot.Stack->GetCount())
+			RemainingCount -= Slot.Stack->ModifyCount(RemainingCount);
+			UE_LOG(LogTemp, Warning, TEXT("try add to existing stack (+ %i) : Remaining %i, Count %i"), Count, RemainingCount, Slot.Stack->GetCount())
 			if (RemainingCount <= 0) break;
 		}
 	}
-
-	// TODO: RemainingCount might be > then MaxCount. in that case i need to add multiple stacks (the function should return array of itemStacks to add all of them as subobjects)
-	if (RemainingCount > 0)
+	
+	// add new stacks with remaining count
+	TArray<UXIUItemStack*> Results;
+	while (RemainingCount > 0)
 	{
-		Result = UXIUInventoryFunctionLibrary::MakeItemStackFromItem(OwnerComponent, Item);  //@TODO: Using the actor instead of component as the outer due to UE-127172
-		Result->SetCount(RemainingCount);
-		
-		for (FXIUInventorySlot& Slot : Entries)
+		UXIUItemStack* Result = UXIUInventoryFunctionLibrary::MakeItemStackFromItem(OwnerComponent, Item);  //@TODO: Using the actor instead of component as the outer due to UE-127172
+		const int NewRemainingCount = RemainingCount - Result->SetCount(RemainingCount);
+
+		// not able to add count to stack (max count = 0)
+		if (NewRemainingCount == RemainingCount)
 		{
-			if (Slot.Stack == nullptr)
+			UE_LOG(LogTemp, Warning, TEXT("Cannot add stacks with max count = 0"))
+			break;
+		}
+		
+		if (AddItemStackInEmptySlot(Result, false))
+		{
+			RemainingCount = NewRemainingCount;
+			Results.Add(Result);
+		}
+		// unable to add stack to inventory (probably full)
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Inventory is full, cannot add remaining stacks"))
+			break;
+		}
+	}
+	return Results;
+}
+
+bool FXIUInventoryList::AddItemStack(UXIUItemStack* ItemStack, bool bUpdateOwningInventory)
+{
+	check(ItemStack != nullptr);
+	check(CanManipulateInventory());
+
+	UE_LOG(LogTemp, Warning, TEXT("--AddItem--"))
+
+	bool bAddedAny = false;
+	
+	// add count to existing stacks
+	for (FXIUInventorySlot& Slot : Entries)
+	{
+		if (Slot.Stack && Slot.Stack->GetItem() == ItemStack->GetItem()) //TODO: check that stacks are equal, not stacks' item
+		{
+			// add count to slot stack
+			int CountToAdd = ItemStack->GetCount();
+			int AddedCount = Slot.Stack->ModifyCount(CountToAdd);
+
+			if (AddedCount > 0)
 			{
-				Slot.SetItemStack(Result);
-				UE_LOG(LogTemp, Warning, TEXT("added new stack"))
-				MarkItemDirty(Slot);
+				bAddedAny = true;
+				// remove count from original stack
+				ItemStack->ModifyCount(-AddedCount);
+				UE_LOG(LogTemp, Warning, TEXT("try add to existing stack (+ %i) : Remaining %i, Count %i"), CountToAdd, (CountToAdd - AddedCount), Slot.Stack->GetCount())
+			}
+			
+			// no more count to add (ItemStack->GetCount() == 0)
+			if (CountToAdd - AddedCount <= 0)
+			{
+				ItemStack->SetOwningInventoryComponent(nullptr);
 				break;
 			}
 		}
 	}
-
-	return Result;
+	
+	// try to add stacks with remaining count
+	if (ItemStack->GetCount() > 0 && AddItemStackInEmptySlot(ItemStack, bUpdateOwningInventory))
+	{
+		bAddedAny = true;
+	}
+	return bAddedAny;
 }
 
-void FXIUInventoryList::AddItemStack(UXIUItemStack* Stack)
+bool FXIUInventoryList::AddItemStackInEmptySlot(UXIUItemStack* ItemStack, bool bUpdateOwningInventory)
 {
-	check(Stack != nullptr);
+	check(ItemStack != nullptr);
 	check(CanManipulateInventory());
-	
-	unimplemented();
-}
 
-void FXIUInventoryList::RemoveCountFromItemStack(UXIUItemStack* Stack, int32 StackCount)
-{
-	check(Stack != nullptr);
-	check(CanManipulateInventory());
-	
 	for (FXIUInventorySlot& Slot : Entries)
 	{
-		if (Slot.Stack == Stack)
+		// if slot is empty I can set stack
+		if (Slot.Stack == nullptr)
 		{
-			int OldCount = Slot.Stack->GetCount();
-			Slot.Stack->SetCount(OldCount - 1);
+			ItemStack->SetOwningInventoryComponent(OwnerComponent);
+			Slot.SetItemStack(ItemStack);
+			MarkItemDirty(Slot);
+			
+			UE_LOG(LogTemp, Warning, TEXT("added new stack"))
+			return true;
 		}
 	}
+	return false;
+}
+
+int FXIUInventoryList::RemoveCountFromItemStack(UXIUItemStack* ItemStack, int32 Count)
+{
+	checkf(Count > 0, TEXT("Cannot remove negative amounts"));
+	check(ItemStack != nullptr);
+	check(CanManipulateInventory());
+	
+	for (auto SlotIt = Entries.CreateIterator(); SlotIt; ++SlotIt)
+	{
+		FXIUInventorySlot& Slot = *SlotIt;
+		if (Slot.Stack == ItemStack)
+		{
+			Count += Slot.Stack->ModifyCount(-Count); // add to count the delta count which is negative, so im actually subtracting the count removed
+			if (Slot.Stack->GetCount() <= 0)
+			{
+				ClearSlot(SlotIt.GetIndex());
+			}
+		}
+	}
+	return Count;
+}
+
+int FXIUInventoryList::ConsumeItem(UXIUItem* Item, int32 Count)
+{
+	checkf(Count > 0, TEXT("Cannot consume negative amounts"));
+	check(Item != nullptr);
+	check(CanManipulateInventory());
+	
+	for (auto SlotIt = Entries.CreateIterator(); SlotIt; ++SlotIt)
+	{
+		FXIUInventorySlot& Slot = *SlotIt;
+		if (Slot.Stack && Slot.Stack->GetItem() == Item)
+		{
+			Count += Slot.Stack->ModifyCount(-Count); // add to count the delta count which is negative, so im actually subtracting the count removed
+			if (Slot.Stack->GetCount() <= 0)
+			{
+				ClearSlot(SlotIt.GetIndex());
+			}
+		}
+	}
+	return Count;
 }
 
 void FXIUInventoryList::ClearSlot(int SlotIndex)
@@ -278,7 +367,7 @@ void UXIUInventoryComponent::ServerAddDefaultItems_Implementation()
     {
     	for (TObjectPtr<UXIUItem> Item : DefaultItems)
     	{
-    		AddItemDefinition(Item, 2);
+    		AddItem(Item, 2);
     	}
     }
 }
@@ -297,117 +386,46 @@ void UXIUInventoryComponent::PrintItems()
 
 
 
-bool UXIUInventoryComponent::CanAddItemDefinition(TSubclassOf<UXIUItem> ItemDef, int32 StackCount)
+bool UXIUInventoryComponent::CanAddItem(TSubclassOf<UXIUItem> Item, int32 Count)
 {
 	//@TODO: Add support for stack limit / uniqueness checks / etc...
 	return true;
 }
 
-UXIUItemStack* UXIUInventoryComponent::AddItemDefinition(UXIUItem* ItemDef, int32 StackCount)
+TArray<UXIUItemStack*> UXIUInventoryComponent::AddItem(UXIUItem* Item, const int32 Count)
 {
-	UXIUItemStack* Result = nullptr;
-	if (ItemDef != nullptr)
+	TArray<UXIUItemStack*> Result;
+	if (Item != nullptr)
 	{
-		Result = Inventory.AddItem(ItemDef, StackCount);
-		
-		if (IsUsingRegisteredSubObjectList() && IsReadyForReplication() && Result)
-		{
-			RegisterReplicatedObject(Result);
-		}
+		Result = Inventory.AddItem(Item, Count);
 	}
 	return Result;
 }
 
-void UXIUInventoryComponent::AddItemInstance(UXIUItemStack* ItemInstance)
+void UXIUInventoryComponent::AddItemStack(UXIUItemStack* ItemStack)
 {
-	Inventory.AddItemStack(ItemInstance);
-	
-	if (IsUsingRegisteredSubObjectList() && IsReadyForReplication() && ItemInstance)
+	if (ItemStack != nullptr)
 	{
-		RegisterReplicatedObject(ItemInstance);
+		Inventory.AddItemStack(ItemStack);
 	}
 }
 
-void UXIUInventoryComponent::RemoveItemInstance(UXIUItemStack* ItemInstance)
+bool UXIUInventoryComponent::ConsumeItem(UXIUItem* Item, int32 Count)
 {
-	Inventory.RemoveCountFromItemStack(ItemInstance, 1);
-
-	if (ItemInstance && IsUsingRegisteredSubObjectList())
+	if (Item != nullptr)
 	{
-		UnregisterReplicatedObject(ItemInstance);
+		if (Inventory.ConsumeItem(Item, Count) == 0)
+		{
+			return true;
+		}
 	}
+	return false;
 }
-
-
-
 
 
 TArray<UXIUItemStack*> UXIUInventoryComponent::GetAllItems() const
 {
 	return Inventory.GetAllItems();
-}
-
-UXIUItemStack* UXIUInventoryComponent::FindFirstItemStackByDefinition(TSubclassOf<UXIUItem> ItemDef) const
-{
-	for (const FXIUInventorySlot& Entry : Inventory.Entries)
-	{
-		UXIUItemStack* Instance = Entry.Stack;
-
-		if (IsValid(Instance))
-		{
-			if (Instance->GetItem()->GetClass() == ItemDef)
-			{
-				return Instance;
-			}
-		}
-	}
-
-	return nullptr;
-}
-
-int32 UXIUInventoryComponent::GetTotalItemCountByDefinition(TSubclassOf<UXIUItem> ItemDef) const
-{
-	int32 TotalCount = 0;
-	for (const FXIUInventorySlot& Entry : Inventory.Entries)
-	{
-		UXIUItemStack* Instance = Entry.Stack;
-
-		if (IsValid(Instance))
-		{
-			if (Instance->GetItem()->GetClass() == ItemDef)
-			{
-				++TotalCount;
-			}
-		}
-	}
-
-	return TotalCount;
-}
-
-bool UXIUInventoryComponent::ConsumeItemsByDefinition(TSubclassOf<UXIUItem> ItemDef, int32 NumToConsume)
-{
-	AActor* OwningActor = GetOwner();
-	if (!OwningActor || !OwningActor->HasAuthority())
-	{
-		return false;
-	}
-
-	//@TODO: N squared right now as there's no acceleration structure
-	int32 TotalConsumed = 0;
-	while (TotalConsumed < NumToConsume)
-	{
-		if (UXIUItemStack* Instance = UXIUInventoryComponent::FindFirstItemStackByDefinition(ItemDef))
-		{
-			Inventory.RemoveCountFromItemStack(Instance, 1);
-			++TotalConsumed;
-		}
-		else
-		{
-			return false;
-		}
-	}
-
-	return TotalConsumed == NumToConsume;
 }
 
 
@@ -419,7 +437,7 @@ bool UXIUInventoryComponent::ConsumeItemsByDefinition(TSubclassOf<UXIUItem> Item
 
 bool UXIUInventoryComponent::RegisterReplicatedObject(UObject* ObjectToRegister)
 {
-	if (IsValid(ObjectToRegister))
+	if (IsUsingRegisteredSubObjectList() && IsReadyForReplication() && IsValid(ObjectToRegister))
 	{
 		ReplicatedObjects.AddUnique(ObjectToRegister);
 		AddReplicatedSubObject(ObjectToRegister);
@@ -430,7 +448,7 @@ bool UXIUInventoryComponent::RegisterReplicatedObject(UObject* ObjectToRegister)
 
 bool UXIUInventoryComponent::UnregisterReplicatedObject(UObject* ObjectToUnregister)
 {
-	if (IsValid(ObjectToUnregister))
+	if (IsUsingRegisteredSubObjectList() && IsValid(ObjectToUnregister))
 	{
 		ReplicatedObjects.Remove(ObjectToUnregister);
 		RemoveReplicatedSubObject(ObjectToUnregister);

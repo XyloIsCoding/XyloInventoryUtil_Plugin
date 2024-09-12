@@ -86,16 +86,17 @@ int UXIUItemStack::GetCount()
 	return -1;
 }
 
-void UXIUItemStack::SetCount(int NewCount)
+int UXIUItemStack::SetCount(int NewCount)
 {
 	if (UXIUCountFragment* CountFragment = Fragments.GetOrDefault<UXIUCountFragment>())
 	{
 		CountFragment->Count = FMath::Clamp(NewCount, 0, CountFragment->MaxCount);
-		
+		return CountFragment->Count;
 	}
+	return -1;
 }
 
-int UXIUItemStack::AddCount(int AddCount)
+int UXIUItemStack::ModifyCount(int AddCount)
 {
 	if (UXIUCountFragment* CountFragment = Fragments.GetOrDefault<UXIUCountFragment>())
 	{

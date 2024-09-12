@@ -90,7 +90,8 @@ UXIUItemFragment* FXIUFragments::DuplicateAndAdd(const UXIUItemFragment* NewFrag
 
 TArray<const UXIUItemFragment*> FXIUFragments::GetAllFragments() const
 {
-	TArray<const UXIUItemFragment*> Result = Super::GetAllFragments();
+	//TODO: this way im getting both the default and changed fragments, which is not desirable 
+	TArray<const UXIUItemFragment*> Result = Super::GetAllFragments(); 
 	Result.Reserve(Result.Num() + ChangedFragments.Num());
 	for (const UXIUItemFragment* Fragment : ChangedFragments)
 	{

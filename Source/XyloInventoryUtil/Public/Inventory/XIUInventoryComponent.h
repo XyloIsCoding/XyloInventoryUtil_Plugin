@@ -142,8 +142,8 @@ private:
 	void BroadcastChangeMessage(FXIUInventorySlot& Entry, int32 OldCount, int32 NewCount);
 
 private:
-	bool CanManipulateInventory();
-
+	bool CanManipulateInventory() const;
+	
 private:
 	void InitInventory(int Size);
 
@@ -158,10 +158,20 @@ private:
 public:
 	TArray<UXIUItemStack*> GetAllItems() const;
 
-	UXIUItemStack* AddItem(UXIUItem* Item, int32 StackCount);
-	void AddItemStack(UXIUItemStack* Stack);
-	void RemoveCountFromItemStack(UXIUItemStack* Stack, int32 StackCount);
+public:
+	TArray<UXIUItemStack*> AddItem(UXIUItem* Item, int32 Count);
+	bool AddItemStack(UXIUItemStack* ItemStack, bool bUpdateOwningInventory = true);
+private:
+	bool AddItemStackInEmptySlot(UXIUItemStack* ItemStack, bool bUpdateOwningInventory = true);
+
+public:
+	/** @return Count still to remove */
+	int RemoveCountFromItemStack(UXIUItemStack* ItemStack, int32 Count);
+	/** @return Count still to remove */
+	int ConsumeItem(UXIUItem* Item, int32 Count);
 	void ClearSlot(int SlotIndex);
+
+
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 	
@@ -208,13 +218,12 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Inventory")
 	int InventorySize;
 private:
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditAnywhere)
 	TArray<TObjectPtr<UXIUItem>> DefaultItems;
 
 public:
 	UFUNCTION(BlueprintCallable)
 	void AddDefaultItems();
-
 	UFUNCTION(Server, Reliable)
 	void ServerAddDefaultItems();
 	
@@ -222,29 +231,19 @@ public:
 	void PrintItems();
 	
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category=Inventory)
-	bool CanAddItemDefinition(TSubclassOf<UXIUItem> ItemDef, int32 StackCount = 1);
+	bool CanAddItem(TSubclassOf<UXIUItem> Item, int32 Count = 1);
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category=Inventory)
-	UXIUItemStack* AddItemDefinition(UXIUItem* ItemDef, int32 StackCount = 1);
+	TArray<UXIUItemStack*> AddItem(UXIUItem* Item, const int32 Count = 1);
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category=Inventory)
-	void AddItemInstance(UXIUItemStack* ItemInstance);
+	void AddItemStack(UXIUItemStack* ItemStack);
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category=Inventory)
-	void RemoveItemInstance(UXIUItemStack* ItemInstance);
-
-
+	bool ConsumeItem(UXIUItem* Item, int32 Count);
 	
-
 	UFUNCTION(BlueprintCallable, Category=Inventory, BlueprintPure=false)
 	TArray<UXIUItemStack*> GetAllItems() const;
-
-	UFUNCTION(BlueprintCallable, Category=Inventory, BlueprintPure)
-	UXIUItemStack* FindFirstItemStackByDefinition(TSubclassOf<UXIUItem> ItemDef) const;
-
-	int32 GetTotalItemCountByDefinition(TSubclassOf<UXIUItem> ItemDef) const;
-	bool ConsumeItemsByDefinition(TSubclassOf<UXIUItem> ItemDef, int32 NumToConsume);
-
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
