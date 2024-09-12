@@ -57,9 +57,11 @@ public:
 		DefaultFragments = InDefaultFragments.GetAllFragments();
 	}
 	
-public:
+private:
 	UPROPERTY(NotReplicated)
 	TObjectPtr<UXIUInventoryComponent> OwningInventoryComponent;
+public:
+	void SetOwningInventoryComponent(TObjectPtr<UXIUInventoryComponent> InventoryComponent);
 	
 protected:
 	UPROPERTY(EditAnywhere, Category = "Item")
@@ -72,7 +74,7 @@ public:
 	virtual TArray<const UXIUItemFragment*> GetAllFragments() const override;
 	void Set(TSubclassOf<UXIUItemFragment> FragmentClass, UXIUItemFragment* NewFragment);
 	void Remove(TSubclassOf<UXIUItemFragment> FragmentClass);
-
+	void RemoveAll();
 	
 	template<class T>
 	T* GetOrDefault()

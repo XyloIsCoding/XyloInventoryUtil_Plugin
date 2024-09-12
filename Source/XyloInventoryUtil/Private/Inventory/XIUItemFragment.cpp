@@ -48,6 +48,29 @@ const UXIUItemFragment* FXIUDefaultFragments::FindDefaultFragmentByClass(const T
  * FXIUFragments
  */
 
+void FXIUFragments::SetOwningInventoryComponent(TObjectPtr<UXIUInventoryComponent> InventoryComponent)
+{
+	checkf(InventoryComponent, TEXT("Fragment struct needs a valid owning inventory component"))
+	UXIUInventoryComponent* OldOwningComponent = OwningInventoryComponent;
+	OwningInventoryComponent = InventoryComponent;
+
+	for (UXIUItemFragment* Fragment : ChangedFragments)
+	{
+		if (Fragment)
+		{
+			// unregister from old inventory component owner
+			if (OldOwningComponent) OldOwningComponent->UnregisterReplicatedObject(Fragment);
+			
+			if (InventoryComponent)
+			{
+				// rename if necessary and register to new inventory component owner
+				if (OldOwningComponent) Fragment->Rename(nullptr, OwningInventoryComponent->GetOwner());
+				OwningInventoryComponent->RegisterReplicatedObject(Fragment);
+			}
+		}
+	}
+}
+
 UXIUItemFragment* FXIUFragments::DuplicateAndAdd(const UXIUItemFragment* NewFragment)
 {
 	if (NewFragment)
@@ -111,6 +134,18 @@ void FXIUFragments::Remove(TSubclassOf<UXIUItemFragment> FragmentClass)
 				OwningInventoryComponent->RemoveReplicatedSubObject(Fragment);
 				FragmentIt.RemoveCurrent();
 			}
+		}
+	}
+}
+
+void FXIUFragments::RemoveAll()
+{
+	for (auto FragmentIt = ChangedFragments.CreateIterator(); FragmentIt; ++FragmentIt)
+	{
+		if (UXIUItemFragment* Fragment = *FragmentIt)
+		{
+			OwningInventoryComponent->RemoveReplicatedSubObject(Fragment);
+			FragmentIt.RemoveCurrent();
 		}
 	}
 }

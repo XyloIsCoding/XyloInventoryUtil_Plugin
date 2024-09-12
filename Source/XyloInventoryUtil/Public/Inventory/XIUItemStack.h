@@ -45,12 +45,15 @@ public:
 private:
 	TObjectPtr<UXIUInventoryComponent> OwningInventoryComponent;
 public:
+	/** deals with the replication of the stack and its fragments.
+	 * must be called if the stack gets transferred to another inventory component */
 	void SetOwningInventoryComponent(UXIUInventoryComponent* InventoryComponent);
 	
 private:
 	UPROPERTY(Replicated)
 	const UXIUItem* Item;
 public:
+	/** Change the item of this stack (resets the fragments) */
 	UFUNCTION(BlueprintCallable, Category = "Item")
 	void SetItem(const UXIUItem* NewItem);
 	UFUNCTION(BlueprintCallable, Category = "Item")

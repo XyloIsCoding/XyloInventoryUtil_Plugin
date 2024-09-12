@@ -3,6 +3,7 @@
 
 #include "Inventory/XIUItemStack.h"
 
+#include "Inventory/XIUInventoryComponent.h"
 #include "Inventory/XIUItem.h"
 #include "Inventory/Fragment/XIUCountFragment.h"
 #include "Net/UnrealNetwork.h"
@@ -36,13 +37,28 @@ void UXIUItemStack::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLif
 
 void UXIUItemStack::SetOwningInventoryComponent(UXIUInventoryComponent* InventoryComponent)
 {
+	checkf(InventoryComponent, TEXT("ItemStrack needs a valid owning inventory component"))
+	UXIUInventoryComponent* OldOwningComponent = OwningInventoryComponent;
 	OwningInventoryComponent = InventoryComponent;
-	Fragments.OwningInventoryComponent = InventoryComponent;
+
+	// unregister from old inventory component owner
+	if (OldOwningComponent) OldOwningComponent->UnregisterReplicatedObject(this);
+
+	if (InventoryComponent)
+	{
+		// rename if necessary and register to new inventory component owner
+		if (OldOwningComponent) Rename(nullptr, OwningInventoryComponent->GetOwner());
+		OwningInventoryComponent->RegisterReplicatedObject(this);
+
+		// change fragments owning inventory component
+		Fragments.SetOwningInventoryComponent(InventoryComponent);
+	}
 }
 
 void UXIUItemStack::SetItem(const UXIUItem* NewItem)
 {
 	Item = NewItem;
+	Fragments.RemoveAll();
 	Fragments = FXIUFragments(Item->Fragments);
 }
 
