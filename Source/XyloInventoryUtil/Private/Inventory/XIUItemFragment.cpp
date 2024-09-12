@@ -50,7 +50,6 @@ const UXIUItemFragment* FXIUDefaultFragments::FindDefaultFragmentByClass(const T
 
 void FXIUFragments::SetOwningInventoryComponent(TObjectPtr<UXIUInventoryComponent> InventoryComponent)
 {
-	checkf(InventoryComponent, TEXT("Fragment struct needs a valid owning inventory component"))
 	UXIUInventoryComponent* OldOwningComponent = OwningInventoryComponent;
 	OwningInventoryComponent = InventoryComponent;
 

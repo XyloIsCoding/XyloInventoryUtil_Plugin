@@ -37,7 +37,6 @@ void UXIUItemStack::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLif
 
 void UXIUItemStack::SetOwningInventoryComponent(UXIUInventoryComponent* InventoryComponent)
 {
-	checkf(InventoryComponent, TEXT("ItemStrack needs a valid owning inventory component"))
 	UXIUInventoryComponent* OldOwningComponent = OwningInventoryComponent;
 	OwningInventoryComponent = InventoryComponent;
 

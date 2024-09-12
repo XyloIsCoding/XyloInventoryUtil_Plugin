@@ -162,9 +162,10 @@ public:
 	TArray<UXIUItemStack*> AddItem(UXIUItem* Item, int32 Count);
 	bool AddItemStack(UXIUItemStack* ItemStack, bool bUpdateOwningInventory = true);
 private:
-	bool AddItemStackInEmptySlot(UXIUItemStack* ItemStack, bool bUpdateOwningInventory = true);
+	bool AddItemStackInEmptySlot(UXIUItemStack* ItemStack, bool bUpdateOwningInventory);
 
 public:
+	bool RemoveItemStack(UXIUItemStack* ItemStack, bool bResetOwningInventory = true);
 	/** @return Count still to remove */
 	int RemoveCountFromItemStack(UXIUItemStack* ItemStack, int32 Count);
 	/** @return Count still to remove */
@@ -238,6 +239,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category=Inventory)
 	void AddItemStack(UXIUItemStack* ItemStack);
+
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category=Inventory)
+	void RemoveItemStack(UXIUItemStack* ItemStack);
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category=Inventory)
 	bool ConsumeItem(UXIUItem* Item, int32 Count);

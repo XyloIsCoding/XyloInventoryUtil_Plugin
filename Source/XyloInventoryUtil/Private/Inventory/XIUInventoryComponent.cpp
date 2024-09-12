@@ -235,12 +235,29 @@ bool FXIUInventoryList::AddItemStackInEmptySlot(UXIUItemStack* ItemStack, bool b
 		// if slot is empty I can set stack
 		if (Slot.Stack == nullptr)
 		{
-			ItemStack->SetOwningInventoryComponent(OwnerComponent);
+			if (bUpdateOwningInventory) ItemStack->SetOwningInventoryComponent(OwnerComponent);
 			Slot.SetItemStack(ItemStack);
 			MarkItemDirty(Slot);
 			
 			UE_LOG(LogTemp, Warning, TEXT("added new stack"))
 			return true;
+		}
+	}
+	return false;
+}
+
+bool FXIUInventoryList::RemoveItemStack(UXIUItemStack* ItemStack, bool bResetOwningInventory)
+{
+	check(ItemStack != nullptr);
+	check(CanManipulateInventory());
+	
+	for (auto SlotIt = Entries.CreateIterator(); SlotIt; ++SlotIt)
+	{
+		FXIUInventorySlot& Slot = *SlotIt;
+		if (Slot.Stack == ItemStack)
+		{
+			if (bResetOwningInventory) Slot.Stack->SetOwningInventoryComponent(nullptr);
+			ClearSlot(SlotIt.GetIndex());
 		}
 	}
 	return false;
@@ -260,6 +277,7 @@ int FXIUInventoryList::RemoveCountFromItemStack(UXIUItemStack* ItemStack, int32 
 			Count += Slot.Stack->ModifyCount(-Count); // add to count the delta count which is negative, so im actually subtracting the count removed
 			if (Slot.Stack->GetCount() <= 0)
 			{
+				Slot.Stack->SetOwningInventoryComponent(nullptr);
 				ClearSlot(SlotIt.GetIndex());
 			}
 		}
@@ -281,6 +299,7 @@ int FXIUInventoryList::ConsumeItem(UXIUItem* Item, int32 Count)
 			Count += Slot.Stack->ModifyCount(-Count); // add to count the delta count which is negative, so im actually subtracting the count removed
 			if (Slot.Stack->GetCount() <= 0)
 			{
+				Slot.Stack->SetOwningInventoryComponent(nullptr);
 				ClearSlot(SlotIt.GetIndex());
 			}
 		}
@@ -406,7 +425,15 @@ void UXIUInventoryComponent::AddItemStack(UXIUItemStack* ItemStack)
 {
 	if (ItemStack != nullptr)
 	{
-		Inventory.AddItemStack(ItemStack);
+		Inventory.AddItemStack(ItemStack, true);
+	}
+}
+
+void UXIUInventoryComponent::RemoveItemStack(UXIUItemStack* ItemStack)
+{
+	if (ItemStack != nullptr)
+	{
+		Inventory.RemoveItemStack(ItemStack, true);
 	}
 }
 
