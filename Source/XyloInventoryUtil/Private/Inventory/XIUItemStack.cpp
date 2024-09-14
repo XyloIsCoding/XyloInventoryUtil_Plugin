@@ -66,7 +66,7 @@ const UXIUItem* UXIUItemStack::GetItem() const
 	return Item;
 }
 
-TArray<const UXIUItemFragment*> UXIUItemStack::GetAllFragments() const
+TArray<UXIUItemFragment*> UXIUItemStack::GetAllFragments() const
 {
 	return Fragments.GetAllFragments();
 }
@@ -104,4 +104,19 @@ int UXIUItemStack::ModifyCount(int AddCount)
 		return CountFragment->Count - PrevCount;
 	}
 	return 0;
+}
+
+void UXIUItemStack::Use(AActor* User)
+{
+	if (Item) Item->Use(User, this);
+}
+
+void UXIUItemStack::UsageTick(AActor* User, float DeltaSeconds)
+{
+	if (Item) Item->UsageTick(User, this, DeltaSeconds);
+}
+
+void UXIUItemStack::FinishUsing(AActor* User)
+{
+	if (Item) Item->FinishUsing(User, this);
 }

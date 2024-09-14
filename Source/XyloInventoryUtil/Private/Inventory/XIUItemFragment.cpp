@@ -12,24 +12,24 @@
  * FXIUDefaultFragments
  */
 
-TArray<const UXIUItemFragment*> FXIUDefaultFragments::GetAllFragments() const
+TArray<UXIUItemFragment*> FXIUDefaultFragments::GetAllFragments() const
 {
-	TArray<const UXIUItemFragment*> Result;
+	TArray<UXIUItemFragment*> Result;
 	Result.Reserve(DefaultFragments.Num());
-	for (const UXIUItemFragment* Fragment : DefaultFragments)
+	for (UXIUItemFragment* Fragment : DefaultFragments)
 	{
 		Result.Add(Fragment);
 	}
 	return Result;
 }
 
-const UXIUItemFragment* FXIUDefaultFragments::FindDefaultFragmentByClass(const TSubclassOf<UXIUItemFragment> FragmentClass) const
+UXIUItemFragment* FXIUDefaultFragments::FindDefaultFragmentByClass(const TSubclassOf<UXIUItemFragment> FragmentClass) const
 {
-	const UXIUItemFragment* FoundFragment = nullptr;
+	UXIUItemFragment* FoundFragment = nullptr;
 
 	if (UClass* TargetClass = FragmentClass.Get())
 	{
-		for (const UXIUItemFragment* Fragment : DefaultFragments)
+		for (UXIUItemFragment* Fragment : DefaultFragments)
 		{
 			if (Fragment && Fragment->IsA(TargetClass))
 			{
@@ -87,12 +87,12 @@ UXIUItemFragment* FXIUFragments::DuplicateAndAdd(const UXIUItemFragment* NewFrag
 	return nullptr;
 }
 
-TArray<const UXIUItemFragment*> FXIUFragments::GetAllFragments() const
+TArray<UXIUItemFragment*> FXIUFragments::GetAllFragments() const
 {
 	//TODO: this way im getting both the default and changed fragments, which is not desirable 
-	TArray<const UXIUItemFragment*> Result = Super::GetAllFragments(); 
+	TArray<UXIUItemFragment*> Result = Super::GetAllFragments(); 
 	Result.Reserve(Result.Num() + ChangedFragments.Num());
-	for (const UXIUItemFragment* Fragment : ChangedFragments)
+	for (UXIUItemFragment* Fragment : ChangedFragments)
 	{
 		Result.Add(Fragment);
 	}
@@ -168,9 +168,9 @@ UXIUItemFragment* FXIUFragments::GetOrDefault(TSubclassOf<UXIUItemFragment> Frag
 	return DuplicateAndAdd(FindDefaultFragmentByClass(FragmentClass));
 }
 
-const UXIUItemFragment* FXIUFragments::FindFragmentByClass(const TSubclassOf<UXIUItemFragment> FragmentClass, bool bCheckDefaults) const
+UXIUItemFragment* FXIUFragments::FindFragmentByClass(const TSubclassOf<UXIUItemFragment> FragmentClass, bool bCheckDefaults) const
 {
-	const UXIUItemFragment* FoundFragment = nullptr;
+	UXIUItemFragment* FoundFragment = nullptr;
 
 	if (UClass* TargetClass = FragmentClass.Get())
 	{

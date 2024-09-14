@@ -20,10 +20,18 @@ class XYLOINVENTORYUTIL_API UXIUItem : public UDataAsset
 {
 	GENERATED_BODY()
 
+private:
+	friend UXIUItemStack;
+	
 public:
 	UPROPERTY(EditAnywhere, Category = "Item")
 	FString Name;
 	
 	UPROPERTY(EditAnywhere, Category = "Item")
 	FXIUDefaultFragments Fragments;
+
+private:
+	virtual void Use(AActor* User, UXIUItemStack* ItemStack) const;
+	virtual void UsageTick(AActor* User, UXIUItemStack* ItemStack, float DeltaSeconds) const;
+	virtual void FinishUsing(AActor* User, UXIUItemStack* ItemStack) const;
 };

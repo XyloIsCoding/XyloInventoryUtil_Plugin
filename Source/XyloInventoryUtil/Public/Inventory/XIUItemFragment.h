@@ -29,11 +29,11 @@ public:
 	
 protected:
 	UPROPERTY(EditAnywhere, Category = "Item", Instanced)
-	TArray<const UXIUItemFragment*> DefaultFragments;
+	TArray<UXIUItemFragment*> DefaultFragments;
 
 public:
-	virtual TArray<const UXIUItemFragment*> GetAllFragments() const;
-	const UXIUItemFragment* FindDefaultFragmentByClass(const TSubclassOf<UXIUItemFragment> FragmentClass) const;
+	virtual TArray<UXIUItemFragment*> GetAllFragments() const;
+	UXIUItemFragment* FindDefaultFragmentByClass(const TSubclassOf<UXIUItemFragment> FragmentClass) const;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -71,7 +71,8 @@ private:
 	UXIUItemFragment* DuplicateAndAdd(const UXIUItemFragment* NewFragment = nullptr);
 	
 public:
-	virtual TArray<const UXIUItemFragment*> GetAllFragments() const override;
+	/** @return Array containing all fragments (default or their changed override). You should NEVER modify fragments got in this way */
+	virtual TArray<UXIUItemFragment*> GetAllFragments() const override;
 	void Set(TSubclassOf<UXIUItemFragment> FragmentClass, UXIUItemFragment* NewFragment);
 	void Remove(TSubclassOf<UXIUItemFragment> FragmentClass);
 	void RemoveAll();
@@ -84,15 +85,17 @@ public:
 		return (T*)GetOrDefault(T::StaticClass());
 	}
 	UXIUItemFragment* GetOrDefault(TSubclassOf<UXIUItemFragment> FragmentClass);
-	
+
+	/** @return Fragment of the specified class (default or its changed override). You should NEVER modify fragments got in this way */
 	template<class T>
-	const T* FindFragmentByClass() const
+	T* FindFragmentByClass() const
 	{
 		static_assert(TPointerIsConvertibleFromTo<T, const UXIUItemFragment>::Value, "'T' template parameter to FindFragmentByClass must be derived from UXIUItemFragment");
 
 		return (T*)FindFragmentByClass(T::StaticClass());
 	}
-	const UXIUItemFragment* FindFragmentByClass(const TSubclassOf<UXIUItemFragment> FragmentClass, bool bCheckDefaults = true) const;
+	/** @return Fragment of the specified class (default or its changed override). You should NEVER modify fragments got in this way */
+	UXIUItemFragment* FindFragmentByClass(const TSubclassOf<UXIUItemFragment> FragmentClass, bool bCheckDefaults = true) const;
 };
 
 
@@ -125,7 +128,7 @@ public:
 	/** Defines whether two fragments are the same. Should be overridden by child classes */
 	UFUNCTION(BlueprintCallable, Category = "Fragment")
 	virtual bool Matches(UXIUItemFragment* Fragment) const;
-
+	
 private:
     UPROPERTY(EditDefaultsOnly, Category = "Replication")
     bool bReplicated = true;

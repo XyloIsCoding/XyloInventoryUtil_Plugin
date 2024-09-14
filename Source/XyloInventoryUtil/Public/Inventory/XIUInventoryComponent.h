@@ -15,6 +15,8 @@ class UXIUItemStack;
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/*--------------------------------------------------------------------------------------------------------------------*/
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /*
  * FXIUInventorySlot Interface
@@ -28,17 +30,10 @@ struct FXIUInventorySlot : public FFastArraySerializerItem
 
 private:
 	friend FXIUInventoryList;
-	friend UXIUInventoryComponent;
-
+	
 public:
 	FXIUInventorySlot()
 		: Index(-1),
-		  bLocked(false)
-	{
-	}
-	
-	FXIUInventorySlot(int SlotIndex)
-		: Index(SlotIndex),
 		  bLocked(false)
 	{
 	}
@@ -50,6 +45,7 @@ public:
 	/* Index */
 	
 private:
+	UPROPERTY()
 	int Index;
 public:
 	int GetIndex() const { return Index; }
@@ -63,20 +59,25 @@ private:
 	UPROPERTY()
 	TObjectPtr<UXIUItemStack> Stack = nullptr;
 public:
-	void Clear();
-	bool SetItemStack(TObjectPtr<UXIUItemStack> NewStack);
+	/** @return true if stack got modified */
+	bool Clear(TObjectPtr<UXIUItemStack>& OldStack);
+	/** @return true if stack got modified */
+	bool SetItemStack(TObjectPtr<UXIUItemStack> NewStack, TObjectPtr<UXIUItemStack>& OldStack);
 	UXIUItemStack* GetItemStack() const { return Stack; }
-
+	bool IsEmpty() const;
+	
 /*--------------------------------------------------------------------------------------------------------------------*/
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 	/* Filter */
 	
 private:
+	UPROPERTY()
 	TSubclassOf<UXIUItem> Filter;
 public:
 	void SetFilter(TSubclassOf<UXIUItem> NewFilter);
 	TSubclassOf<UXIUItem> GetFilter() const { return Filter; }
+	bool MatchesFilter(const TObjectPtr<UXIUItemStack> ItemStack) const;
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 	
@@ -84,13 +85,18 @@ public:
 	/* Locked */
 	
 private:
+	UPROPERTY()
 	bool bLocked;
 public:
 	void SetLocked(bool NewLock);
 	bool GetLocked() const { return bLocked; }
+
+/*--------------------------------------------------------------------------------------------------------------------*/
 };
 
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/*--------------------------------------------------------------------------------------------------------------------*/
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /*
@@ -102,9 +108,6 @@ USTRUCT(BlueprintType)
 struct FXIUInventoryList : public FFastArraySerializer
 {
 	GENERATED_BODY()
-
-private:
-	friend UXIUInventoryComponent;
 
 public:
 	FXIUInventoryList()
@@ -144,8 +147,11 @@ private:
 private:
 	bool CanManipulateInventory() const;
 	
-private:
+public:
 	void InitInventory(int Size);
+
+public:
+	int GetSize() const { return Entries.Num(); }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 	/* Slots Management */
@@ -156,23 +162,47 @@ private:
 	TArray<FXIUInventorySlot> Entries;
 	
 public:
-	TArray<UXIUItemStack*> GetAllItems() const;
+	const TArray<FXIUInventorySlot>& GetInventory() const;
+	UXIUItemStack* GetStackAtSlot(int SlotIndex);
 
 public:
-	TArray<UXIUItemStack*> AddItem(UXIUItem* Item, int32 Count);
-	bool AddItemStack(UXIUItemStack* ItemStack, bool bUpdateOwningInventory = true);
+	/** Add count of an item to the inventory. increases count of existing stacks if it can,
+	 * else tries to add a new stack with defaulted fragments
+	 * @return Count added */
+	 int AddItem(UXIUItem* Item, int32 Count, TArray<UXIUItemStack*> AddedStacks);
+	/** Tries to add an item stack to the inventory, first by increasing count of existing matching stacks, then by adding
+	 * the stack itself with the remaining count
+	 * @return Count added */
+	int AddItemStack(UXIUItemStack* ItemStack, bool bUpdateOwningInventory = true);
 private:
+	/** Tries to add an item stack to the first empty slot which allows the stack to be inserted.
+	 * @return true if the stack got added */
 	bool AddItemStackInEmptySlot(UXIUItemStack* ItemStack, bool bUpdateOwningInventory);
 
 public:
-	bool RemoveItemStack(UXIUItemStack* ItemStack, bool bResetOwningInventory = true);
-	/** @return Count still to remove */
+	/** Removes the stack from the inventory
+	 * @return true if the stack got removed*/
+	bool RemoveItemStack(UXIUItemStack* ItemStack);
+	/** Removes count from an item stack of this inventory
+	 * @return Count still to remove */
 	int RemoveCountFromItemStack(UXIUItemStack* ItemStack, int32 Count);
-	/** @return Count still to remove */
+	/** Removes count of an item in this inventory
+	 * @return Count still to remove */
 	int ConsumeItem(UXIUItem* Item, int32 Count);
-	void ClearSlot(int SlotIndex);
 
-
+public:
+	/** Set a stack in a slot
+	 * @param ItemStack: the stack to set
+	 * @param SlotIndex: index of the slot
+	 * @param OldStack: stack that was in the slot
+	 * @param bUpdateOwningInventory: if the owning inventory of ItemStack should be updated
+	 * @return true if stack got set */
+	bool SetItemStackInSlot(UXIUItemStack* ItemStack, int SlotIndex, TObjectPtr<UXIUItemStack>& OldStack, bool bUpdateOwningInventory);
+	/** Extract a stack from a slot
+	 * @param SlotIndex: index of the slot
+	 * @param ExtractedStack: stack that was in the slot
+	 * @return true if stack got extracted */
+	bool ExtractItemStackFromSlot(int SlotIndex, TObjectPtr<UXIUItemStack>& ExtractedStack);
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 	
@@ -223,17 +253,17 @@ private:
 	TArray<TObjectPtr<UXIUItem>> DefaultItems;
 
 public:
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category=Inventory)
 	void AddDefaultItems();
-	UFUNCTION(Server, Reliable)
+	UFUNCTION(Server, Reliable, Category=Inventory)
 	void ServerAddDefaultItems();
-	
-	UFUNCTION(BlueprintCallable)
-	void PrintItems();
-	
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category=Inventory)
-	bool CanAddItem(TSubclassOf<UXIUItem> Item, int32 Count = 1);
 
+	UFUNCTION(BlueprintCallable, Category=Inventory)
+	void PrintItems();
+
+	UFUNCTION(BlueprintCallable, Category=Inventory)
+	UXIUItemStack* GetStackAtSlot(int32 SlotIndex);
+	
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category=Inventory)
 	TArray<UXIUItemStack*> AddItem(UXIUItem* Item, const int32 Count = 1);
 
@@ -241,14 +271,7 @@ public:
 	void AddItemStack(UXIUItemStack* ItemStack);
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category=Inventory)
-	void RemoveItemStack(UXIUItemStack* ItemStack);
-
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category=Inventory)
 	bool ConsumeItem(UXIUItem* Item, int32 Count);
-	
-	UFUNCTION(BlueprintCallable, Category=Inventory, BlueprintPure=false)
-	TArray<UXIUItemStack*> GetAllItems() const;
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

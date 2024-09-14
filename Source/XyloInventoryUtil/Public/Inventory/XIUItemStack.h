@@ -63,13 +63,10 @@ private:
 	UPROPERTY(Replicated)
 	FXIUFragments Fragments;
 public:
-	TArray<const UXIUItemFragment*> GetAllFragments() const;
-	
+	/** @return Array containing all fragments (default or their changed override). You should NEVER modify fragments got in this way */
+	TArray<UXIUItemFragment*> GetAllFragments() const;
 	UFUNCTION(BlueprintCallable, Category = "Fragments")
 	void SetFragment(TSubclassOf<UXIUItemFragment> FragmentClass, UXIUItemFragment* Fragment);
-
-
-
 	
 	UFUNCTION(BlueprintCallable, Category = "Count Fragment")
 	int GetCount();
@@ -79,5 +76,13 @@ public:
 	/** @return count actually added (or removed if negative) */
 	UFUNCTION(BlueprintCallable, Category = "Count Fragment")
 	int ModifyCount(int AddCount);
+
+public:
+	UFUNCTION(BlueprintCallable, Category = "Item")
+	void Use(AActor* User);
+	UFUNCTION(BlueprintCallable, Category = "Item")
+	void UsageTick(AActor* User, float DeltaSeconds);
+	UFUNCTION(BlueprintCallable, Category = "Item")
+	void FinishUsing(AActor* User); 
 	
 };
