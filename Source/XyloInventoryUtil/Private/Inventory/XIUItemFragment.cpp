@@ -12,7 +12,7 @@
  * FXIUDefaultFragments
  */
 
-TArray<UXIUItemFragment*> FXIUDefaultFragments::GetAllFragments() const
+TArray<UXIUItemFragment*> FXIUDefaultFragments::GetDefaultFragments() const
 {
 	TArray<UXIUItemFragment*> Result;
 	Result.Reserve(DefaultFragments.Num());
@@ -70,15 +70,12 @@ void FXIUFragments::SetOwningInventoryComponent(TObjectPtr<UXIUInventoryComponen
 	}
 }
 
-UXIUItemFragment* FXIUFragments::DuplicateAndAdd(const UXIUItemFragment* NewFragment)
+UXIUItemFragment* FXIUFragments::DuplicateAndAdd(const UXIUItemFragment* InFragment)
 {
-	if (NewFragment)
+	if (InFragment)
 	{
-		if (UXIUItemFragment* DuplicateFragment = DuplicateObject<UXIUItemFragment>(NewFragment, OwningInventoryComponent->GetOwner()))
+		if (UXIUItemFragment* DuplicateFragment = InFragment->Duplicate(OwningInventoryComponent->GetOwner()))
 		{
-			// clear this two flags to allow client to update the outer of the duplicated fragment
-			DuplicateFragment->ClearFlags(EObjectFlags::RF_WasLoaded);
-			DuplicateFragment->ClearFlags(EObjectFlags::RF_LoadCompleted);
 			OwningInventoryComponent->AddReplicatedSubObject(DuplicateFragment);
 			ChangedFragments.Add(DuplicateFragment);
 			return DuplicateFragment;
@@ -87,10 +84,14 @@ UXIUItemFragment* FXIUFragments::DuplicateAndAdd(const UXIUItemFragment* NewFrag
 	return nullptr;
 }
 
-TArray<UXIUItemFragment*> FXIUFragments::GetAllFragments() const
+TArray<UXIUItemFragment*> FXIUFragments::GetAllFragments(const bool bCheckDefaults) const
 {
 	//TODO: this way im getting both the default and changed fragments, which is not desirable 
-	TArray<UXIUItemFragment*> Result = Super::GetAllFragments(); 
+	TArray<UXIUItemFragment*> Result;
+	if (bCheckDefaults)
+	{
+		Result = GetDefaultFragments();
+	}
 	Result.Reserve(Result.Num() + ChangedFragments.Num());
 	for (UXIUItemFragment* Fragment : ChangedFragments)
 	{
@@ -168,7 +169,7 @@ UXIUItemFragment* FXIUFragments::GetOrDefault(TSubclassOf<UXIUItemFragment> Frag
 	return DuplicateAndAdd(FindDefaultFragmentByClass(FragmentClass));
 }
 
-UXIUItemFragment* FXIUFragments::FindFragmentByClass(const TSubclassOf<UXIUItemFragment> FragmentClass, bool bCheckDefaults) const
+UXIUItemFragment* FXIUFragments::FindFragmentByClass(const TSubclassOf<UXIUItemFragment> FragmentClass, const bool bCheckDefaults) const
 {
 	UXIUItemFragment* FoundFragment = nullptr;
 
@@ -202,6 +203,18 @@ UXIUItemFragment* FXIUFragments::FindFragmentByClass(const TSubclassOf<UXIUItemF
 void UXIUItemFragment::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	UObject::GetLifetimeReplicatedProps(OutLifetimeProps);
+}
+
+UXIUItemFragment* UXIUItemFragment::Duplicate(UObject* Outer) const
+{
+	if (UXIUItemFragment* DuplicateFragment = DuplicateObject<UXIUItemFragment>(this, Outer))
+	{
+		// clear this two flags to allow client to update the outer of the duplicated fragment
+		DuplicateFragment->ClearFlags(EObjectFlags::RF_WasLoaded);
+		DuplicateFragment->ClearFlags(EObjectFlags::RF_LoadCompleted);
+		return DuplicateFragment;
+	}
+	return nullptr;
 }
 
 bool UXIUItemFragment::Matches(UXIUItemFragment* Fragment) const

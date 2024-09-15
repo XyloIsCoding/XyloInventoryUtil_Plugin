@@ -4,6 +4,7 @@
 #include "Inventory/XIUItemStack.h"
 
 #include "Inventory/XIUInventoryComponent.h"
+#include "Inventory/XIUInventoryFunctionLibrary.h"
 #include "Inventory/XIUItem.h"
 #include "Inventory/Fragment/XIUCountFragment.h"
 #include "Net/UnrealNetwork.h"
@@ -66,9 +67,14 @@ const UXIUItem* UXIUItemStack::GetItem() const
 	return Item;
 }
 
-TArray<UXIUItemFragment*> UXIUItemStack::GetAllFragments() const
+TArray<UXIUItemFragment*> UXIUItemStack::GetAllFragments(const bool bCheckDefaults) const
 {
-	return Fragments.GetAllFragments();
+	return Fragments.GetAllFragments(bCheckDefaults);
+}
+
+UXIUItemFragment* UXIUItemStack::GetFragment(TSubclassOf<UXIUItemFragment> FragmentClass)
+{
+	return Fragments.FindFragmentByClass(FragmentClass);
 }
 
 void UXIUItemStack::SetFragment(TSubclassOf<UXIUItemFragment> FragmentClass, UXIUItemFragment* Fragment)
@@ -104,6 +110,65 @@ int UXIUItemStack::ModifyCount(int AddCount)
 		return CountFragment->Count - PrevCount;
 	}
 	return 0;
+}
+
+UXIUItemStack* UXIUItemStack::Split(int Count)
+{
+	const int NewStackCount = ModifyCount(Count);
+	if (UXIUItemStack* NewItemStack = Duplicate(nullptr))
+	{
+		NewItemStack->SetCount(NewStackCount);
+		return NewItemStack;
+	}
+	return nullptr;
+}
+
+UXIUItemStack* UXIUItemStack::Duplicate(UXIUInventoryComponent* InventoryComponent)
+{
+	UXIUInventoryComponent* NewOwningInventoryComponent = InventoryComponent ? InventoryComponent : OwningInventoryComponent;
+	
+	UXIUItemStack* NewItemStack = NewObject<UXIUItemStack>( NewOwningInventoryComponent->GetOwner());
+	NewItemStack->SetItem(Item);
+	// duplicate and add all changed fragments from original item stack
+	for (UXIUItemFragment* Fragment : Fragments.GetAllFragments(false))
+	{
+		if (Fragment)
+		{
+			NewItemStack->SetFragment(Fragment->GetClass(), Fragment->Duplicate(NewOwningInventoryComponent->GetOwner()));
+		}
+	}
+	// we set the owning inventory for last, since this updates all fragments replication stuff too
+	NewItemStack->SetOwningInventoryComponent(NewOwningInventoryComponent);
+	
+	return NewItemStack;
+}
+
+bool UXIUItemStack::IsEmpty()
+{
+	return GetCount() == 0;
+}
+
+bool UXIUItemStack::Matches(UXIUItemStack* ItemStack)
+{
+	if (Item != ItemStack->GetItem()) return false;
+	if (GetCount() != ItemStack->GetCount()) return false;
+
+	TArray<UXIUItemFragment*> ThisFragments = GetAllFragments();
+	TArray<UXIUItemFragment*> OtherFragments = ItemStack->GetAllFragments();
+	if (ThisFragments.Num() != OtherFragments.Num()) return false;
+
+	// compare fragments
+	for (UXIUItemFragment* Fragment : ThisFragments)
+	{
+		if (UXIUItemFragment* SimilarFragment = ItemStack->GetFragment(Fragment->GetClass()))
+		{
+			// if a fragment does not match its similar fragment, then stacks are different
+			if (!Fragment->Matches(SimilarFragment)) return false;
+		}
+		// if there is no fragment of the same class, then stacks are different
+		else return false;
+	}
+	return true;
 }
 
 void UXIUItemStack::Use(AActor* User)

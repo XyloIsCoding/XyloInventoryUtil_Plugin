@@ -32,7 +32,7 @@ protected:
 	TArray<UXIUItemFragment*> DefaultFragments;
 
 public:
-	virtual TArray<UXIUItemFragment*> GetAllFragments() const;
+	TArray<UXIUItemFragment*> GetDefaultFragments() const;
 	UXIUItemFragment* FindDefaultFragmentByClass(const TSubclassOf<UXIUItemFragment> FragmentClass) const;
 };
 
@@ -54,7 +54,7 @@ public:
 	
 	FXIUFragments(const FXIUDefaultFragments& InDefaultFragments)
 	{
-		DefaultFragments = InDefaultFragments.GetAllFragments();
+		DefaultFragments = InDefaultFragments.GetDefaultFragments();
 	}
 	
 private:
@@ -68,11 +68,11 @@ protected:
 	TArray<TObjectPtr<UXIUItemFragment>> ChangedFragments;
 
 private:
-	UXIUItemFragment* DuplicateAndAdd(const UXIUItemFragment* NewFragment = nullptr);
+	UXIUItemFragment* DuplicateAndAdd(const UXIUItemFragment* InFragment);
 	
 public:
 	/** @return Array containing all fragments (default or their changed override). You should NEVER modify fragments got in this way */
-	virtual TArray<UXIUItemFragment*> GetAllFragments() const override;
+	virtual TArray<UXIUItemFragment*> GetAllFragments(const bool bCheckDefaults = true) const;
 	void Set(TSubclassOf<UXIUItemFragment> FragmentClass, UXIUItemFragment* NewFragment);
 	void Remove(TSubclassOf<UXIUItemFragment> FragmentClass);
 	void RemoveAll();
@@ -95,7 +95,7 @@ public:
 		return (T*)FindFragmentByClass(T::StaticClass());
 	}
 	/** @return Fragment of the specified class (default or its changed override). You should NEVER modify fragments got in this way */
-	UXIUItemFragment* FindFragmentByClass(const TSubclassOf<UXIUItemFragment> FragmentClass, bool bCheckDefaults = true) const;
+	UXIUItemFragment* FindFragmentByClass(const TSubclassOf<UXIUItemFragment> FragmentClass, const bool bCheckDefaults = true) const;
 };
 
 
@@ -125,6 +125,10 @@ public:
 public:
 	virtual void OnInstanceCreated(UXIUItemStack* Instance) const {}
 
+	/** @return Duplicated fragment using specified outer */
+	UFUNCTION(BlueprintCallable, Category = "Fragment")
+	virtual UXIUItemFragment* Duplicate(UObject* Outer) const;
+	
 	/** Defines whether two fragments are the same. Should be overridden by child classes */
 	UFUNCTION(BlueprintCallable, Category = "Fragment")
 	virtual bool Matches(UXIUItemFragment* Fragment) const;

@@ -57,7 +57,7 @@ bool FXIUInventorySlot::SetItemStack(TObjectPtr<UXIUItemStack> NewStack, TObject
 
 bool FXIUInventorySlot::IsEmpty() const
 {
-	return Stack == nullptr || Stack->GetCount() <= 0; 
+	return Stack == nullptr || Stack->IsEmpty(); 
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -220,14 +220,14 @@ int FXIUInventoryList::AddItemStack(UXIUItemStack* ItemStack, bool bUpdateOwning
 	check(ItemStack != nullptr);
 	check(CanManipulateInventory());
 
-	UE_LOG(LogTemp, Warning, TEXT("--AddItem--"))
+	UE_LOG(LogTemp, Warning, TEXT("--AddItemStack--"))
 
 	int TotalAddedCount = 0;
 	
 	// add count to existing stacks
 	for (FXIUInventorySlot& Slot : Entries)
 	{
-		if (Slot.GetItemStack() && Slot.GetItemStack()->GetItem() == ItemStack->GetItem()) //TODO: check that stacks are equal, not stacks' item
+		if (Slot.GetItemStack() && ItemStack->Matches(Slot.GetItemStack())) 
 		{
 			// add count to slot stack
 			int CountToAdd = ItemStack->GetCount();

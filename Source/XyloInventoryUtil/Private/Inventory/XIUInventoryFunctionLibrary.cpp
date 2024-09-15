@@ -17,3 +17,9 @@ UXIUItemStack* UXIUInventoryFunctionLibrary::MakeItemStackFromItem(UXIUInventory
 	ItemStack->SetOwningInventoryComponent(InventoryComponent);
 	return ItemStack;
 }
+
+UXIUItemStack* UXIUInventoryFunctionLibrary::DuplicateItemStack(UXIUInventoryComponent* InventoryComponent, TObjectPtr<UXIUItemStack> ItemStack)
+{
+	checkf(ItemStack, TEXT("Cannot duplicate null stack"));
+	return ItemStack->Duplicate(InventoryComponent);
+}
