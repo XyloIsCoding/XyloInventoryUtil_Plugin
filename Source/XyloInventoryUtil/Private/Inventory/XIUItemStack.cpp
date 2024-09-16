@@ -125,7 +125,7 @@ UXIUItemStack* UXIUItemStack::Split(int Count)
 
 UXIUItemStack* UXIUItemStack::Duplicate(UXIUInventoryComponent* InventoryComponent)
 {
-	UXIUInventoryComponent* NewOwningInventoryComponent = InventoryComponent ? InventoryComponent : OwningInventoryComponent;
+	UXIUInventoryComponent* NewOwningInventoryComponent = InventoryComponent ? InventoryComponent : OwningInventoryComponent.Get();
 	
 	UXIUItemStack* NewItemStack = NewObject<UXIUItemStack>( NewOwningInventoryComponent->GetOwner());
 	NewItemStack->SetItem(Item);
