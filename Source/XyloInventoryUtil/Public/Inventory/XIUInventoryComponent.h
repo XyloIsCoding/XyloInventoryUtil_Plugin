@@ -9,6 +9,7 @@
 #include "XIUInventoryComponent.generated.h"
 
 
+class UXIUItemDefinition;
 struct FXIUInventoryList;
 class UXIUInventoryComponent;
 class UXIUItemStack;
@@ -169,7 +170,7 @@ public:
 	/** Add count of an item to the inventory. increases count of existing stacks if it can,
 	 * else tries to add a new stack with defaulted fragments
 	 * @return Count added */
-	 int AddItem(UXIUItem* Item, int32 Count, TArray<UXIUItemStack*> AddedStacks);
+	 int AddItem(UXIUItemDefinition* ItemDefinition, int32 Count, TArray<UXIUItemStack*> AddedStacks);
 	/** Tries to add an item stack to the inventory, first by increasing count of existing matching stacks, then by adding
 	 * the stack itself with the remaining count
 	 * @return Count added */
@@ -188,7 +189,7 @@ public:
 	int RemoveCountFromItemStack(UXIUItemStack* ItemStack, int32 Count);
 	/** Removes count of an item in this inventory
 	 * @return Count still to remove */
-	int ConsumeItem(UXIUItem* Item, int32 Count);
+	int ConsumeItem(UXIUItemDefinition* ItemDefinition, int32 Count);
 
 public:
 	/** Set a stack in a slot
@@ -250,7 +251,13 @@ private:
 	int InventorySize;
 private:
 	UPROPERTY(EditAnywhere)
-	TArray<TObjectPtr<UXIUItem>> DefaultItems;
+	TArray<TObjectPtr<UXIUItemDefinition>> DefaultItems;
+
+	UPROPERTY(EditAnywhere)
+	TArray<UXIUItem*> DefaultItems2;
+
+	UPROPERTY(EditAnywhere)
+	UXIUItem* DefaultItems3;
 
 public:
 	UFUNCTION(BlueprintCallable, Category=Inventory)
@@ -265,13 +272,13 @@ public:
 	UXIUItemStack* GetStackAtSlot(int32 SlotIndex);
 	
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category=Inventory)
-	TArray<UXIUItemStack*> AddItem(UXIUItem* Item, const int32 Count = 1);
+	TArray<UXIUItemStack*> AddItem(UXIUItemDefinition* ItemDefinition, const int32 Count = 1);
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category=Inventory)
 	void AddItemStack(UXIUItemStack* ItemStack);
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category=Inventory)
-	bool ConsumeItem(UXIUItem* Item, int32 Count);
+	bool ConsumeItem(UXIUItemDefinition* ItemDefinition, int32 Count);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

@@ -4,16 +4,14 @@
 #include "Inventory/XIUInventoryFunctionLibrary.h"
 
 #include "Inventory/XIUInventoryComponent.h"
-#include "Inventory/XIUItem.h"
 #include "Inventory/XIUItemStack.h"
-#include "Inventory/Fragment/XIUCountFragment.h"
 
-UXIUItemStack* UXIUInventoryFunctionLibrary::MakeItemStackFromItem(UXIUInventoryComponent* InventoryComponent, TObjectPtr<UXIUItem> Item)
+UXIUItemStack* UXIUInventoryFunctionLibrary::MakeItemStackFromItem(UXIUInventoryComponent* InventoryComponent, TObjectPtr<UXIUItemDefinition> ItemDefinition)
 {
-	if (!Item) return nullptr;
+	if (!ItemDefinition) return nullptr;
 	
 	UXIUItemStack* ItemStack = NewObject<UXIUItemStack>(InventoryComponent->GetOwner());
-	ItemStack->SetItem(Item);
+	ItemStack->SetItemDefinition(ItemDefinition);
 	ItemStack->SetOwningInventoryComponent(InventoryComponent);
 	return ItemStack;
 }
