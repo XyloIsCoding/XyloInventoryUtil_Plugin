@@ -6,9 +6,9 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "XIUInventoryFunctionLibrary.generated.h"
 
-class UXIUItemDefinition;
+class UXIUItem;
+struct FXIUItemDefault;
 class UXIUInventoryComponent;
-class UXIUItemStack;
 /**
  * 
  */
@@ -18,9 +18,10 @@ class XYLOINVENTORYUTIL_API UXIUInventoryFunctionLibrary : public UBlueprintFunc
 	GENERATED_BODY()
 
 public:
-	static UXIUItemStack* MakeItemStackFromItem(UXIUInventoryComponent* InventoryComponent, TObjectPtr<UXIUItemDefinition> ItemDefinition);
+	UFUNCTION(BlueprintCallable)
+	static UXIUItem* MakeItemFromDefault(UXIUInventoryComponent* InventoryComponent, FXIUItemDefault ItemDefault);
 	/** @param InventoryComponent: if nullptr keeps the ItemStack owner
-	 * @param ItemStack: the item stack to duplicate
+	 * @param Item: the item to duplicate
 	 * @return a new item stack, copy of the first one */
-	static UXIUItemStack* DuplicateItemStack(UXIUInventoryComponent* InventoryComponent, TObjectPtr<UXIUItemStack> ItemStack);
+	static UXIUItem* DuplicateItem(UXIUInventoryComponent* InventoryComponent, UXIUItem* Item);
 };

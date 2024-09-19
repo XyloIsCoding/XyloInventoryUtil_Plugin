@@ -4,8 +4,6 @@
 #include "Inventory/XIUInventoryComponent.h"
 
 #include "Inventory/XIUInventoryFunctionLibrary.h"
-#include "Inventory/XIUItemDefinition.h"
-#include "Inventory/XIUItemStack.h"
 #include "Net/UnrealNetwork.h"
 
 
@@ -20,45 +18,48 @@
 
 FString FXIUInventorySlot::GetDebugString() const
 {
-	TSubclassOf<UXIUItem> Item;
-	if (Stack != nullptr)
+	if (Item)
 	{
-		Item = Stack->GetItemDefinition()->GetClass();
+		return FString::Printf(TEXT("%s (%i x %s)"), *GetNameSafe(Item), Item->GetCount(), *Item->GetItemName());
 	}
-
-	return FString::Printf(TEXT("%s (%d x %s)"), *GetNameSafe(Stack), Stack->GetCount(), *GetNameSafe(Item));
+	return FString::Printf(TEXT("Empty"));
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 /* Stack */
 
-bool FXIUInventorySlot::Clear(TObjectPtr<UXIUItemStack>& OldStack)
+bool FXIUInventorySlot::Clear(TObjectPtr<UXIUItem>& OldItem)
 {
-	if (Stack)
+	if (Item)
 	{
-		OldStack = Stack;
-		Stack = nullptr;
+		OldItem = Item;
+		Item = nullptr;
 		return true;
 	}
 	return false;
 }
 
-bool FXIUInventorySlot::SetItemStack(TObjectPtr<UXIUItemStack> NewStack, TObjectPtr<UXIUItemStack>& OldStack)
+bool FXIUInventorySlot::SetItem(const TObjectPtr<UXIUItem> NewItem, TObjectPtr<UXIUItem>& OldItem)
 {
 	if (bLocked) return false;
 	
-	if (MatchesFilter(NewStack))
+	if (MatchesFilter(NewItem))
 	{
-		OldStack = Stack;
-		Stack = NewStack;
+		OldItem = Item;
+		Item = NewItem;
 		return true;
 	}
 	return false;
+}
+
+TObjectPtr<UXIUItem> FXIUInventorySlot::GetItem() const
+{
+	return Item;
 }
 
 bool FXIUInventorySlot::IsEmpty() const
 {
-	return Stack == nullptr || Stack->IsEmpty(); 
+	return Item == nullptr || Item->IsEmpty(); 
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -66,14 +67,14 @@ bool FXIUInventorySlot::IsEmpty() const
 /*--------------------------------------------------------------------------------------------------------------------*/
 /* Filter */
 
-void FXIUInventorySlot::SetFilter(TSubclassOf<UXIUItem> NewFilter)
+void FXIUInventorySlot::SetFilter(const TSubclassOf<UXIUItem> NewFilter)
 {
 	Filter = NewFilter;
 }
 
-bool FXIUInventorySlot::MatchesFilter(const TObjectPtr<UXIUItemStack> ItemStack) const
+bool FXIUInventorySlot::MatchesFilter(const TObjectPtr<UXIUItem> TestItem) const
 {
-	return !Filter || !ItemStack || (ItemStack->GetItemDefinition() && ItemStack->GetItemDefinition()->IsA(Filter));
+	return !Filter || !TestItem || (TestItem->IsA(Filter));
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -108,20 +109,50 @@ void FXIUInventorySlot::SetLocked(bool NewLock)
 
 void FXIUInventoryList::PreReplicatedRemove(const TArrayView<int32> RemovedIndices, int32 FinalSize)
 {
+	for (int32 Index : RemovedIndices)
+	{
+		FXIUInventorySlot& Slot = Entries[Index];
+		BroadcastChangeMessage(Slot, /*OldCount=*/ Slot.GetItem()->GetCount(), /*NewCount=*/ 0);
+		Slot.LastObservedCount = 0;
+	}
 }
 
 void FXIUInventoryList::PostReplicatedAdd(const TArrayView<int32> AddedIndices, int32 FinalSize)
 {
+	for (int32 Index : AddedIndices)
+	{
+		FXIUInventorySlot& Slot = Entries[Index];
+		BroadcastChangeMessage(Slot, /*OldCount=*/ 0, /*NewCount=*/ Slot.GetItem()->GetCount());
+		Slot.LastObservedCount = Slot.GetItem()->GetCount();
+	}
 }
 
 void FXIUInventoryList::PostReplicatedChange(const TArrayView<int32> ChangedIndices, int32 FinalSize)
 {
+	for (int32 Index : ChangedIndices)
+	{
+		FXIUInventorySlot& Slot = Entries[Index];
+		check(Slot.LastObservedCount != INDEX_NONE);
+		BroadcastChangeMessage(Slot, /*OldCount=*/ Slot.LastObservedCount, /*NewCount=*/ Slot.GetItem()->GetCount());
+		Slot.LastObservedCount = Slot.GetItem()->GetCount();
+	}
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 
-void FXIUInventoryList::BroadcastChangeMessage(FXIUInventorySlot& Entry, int32 OldCount, int32 NewCount)
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+/* Helpers */
+
+void FXIUInventoryList::BroadcastChangeMessage(const FXIUInventorySlot& Entry, const int32 OldCount, const int32 NewCount) const
 {
+	FXIUInventoryChangeMessage Message;
+	Message.InventoryOwner = OwnerComponent;
+	Message.Item = Entry.GetItem();
+	Message.NewCount = NewCount;
+	Message.Delta = NewCount - OldCount;
+
+	if (OwnerComponent) OwnerComponent->InventoryReplicatedDelegate.Broadcast(Message);
 }
 
 bool FXIUInventoryList::CanManipulateInventory() const
@@ -131,6 +162,9 @@ bool FXIUInventoryList::CanManipulateInventory() const
 	if (!OwningActor->HasAuthority()) return false;
 	return true;
 }
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+/* Slots Management */
 
 void FXIUInventoryList::InitInventory(int Size)
 {
@@ -146,245 +180,159 @@ void FXIUInventoryList::InitInventory(int Size)
 	}
 }
 
-/*--------------------------------------------------------------------------------------------------------------------*/
-/* Slots Management */
-
-const TArray<FXIUInventorySlot>& FXIUInventoryList::GetInventory() const
+int FXIUInventoryList::AddItemDefault(FXIUItemDefault ItemDefault, TArray<TObjectPtr<UXIUItem>>& AddedItems)
 {
-	return Entries;
-}
-
-UXIUItemStack* FXIUInventoryList::GetStackAtSlot(int SlotIndex)
-{
-	checkf(SlotIndex <= Entries.Num(), TEXT("Cannot get non existent slots"));
-	
-	for (FXIUInventorySlot& Slot : Entries)
-	{
-		if (Slot.GetIndex() == SlotIndex)
-		{
-			return Slot.GetItemStack();
-		}
-	}
-	return nullptr; 
-}
-
-int FXIUInventoryList::AddItem(UXIUItemDefinition* ItemDefinition, int32 Count, TArray<UXIUItemStack*> AddedStacks)
-{
-	checkf(Count > 0, TEXT("Cannot add negative amounts"));
-	check(ItemDefinition != nullptr);
 	check(CanManipulateInventory());
 
-	UE_LOG(LogTemp, Warning, TEXT("--AddItem--"))
-	int RemainingCount = Count;
+	UE_LOG(LogTemp, Warning, TEXT("Adding count %i"), ItemDefault.Count)
+	int RemainingCount = ItemDefault.Count;
 
-	// add count to existing stacks
+	// try to add count to existing items
 	for (FXIUInventorySlot& Slot : Entries)
 	{
-		if (Slot.GetItemStack() && Slot.GetItemStack()->GetItemDefinition() == ItemDefinition)
+		if (!Slot.IsEmpty() && Slot.GetItem().IsA(ItemDefault.ItemClass))
 		{
-			RemainingCount -= Slot.GetItemStack()->ModifyCount(RemainingCount);
-			UE_LOG(LogTemp, Warning, TEXT("try add to existing stack (+ %i) : Remaining %i, Count %i"), Count, RemainingCount, Slot.GetItemStack()->GetCount())
-			if (RemainingCount <= 0) break;
+			RemainingCount -= Slot.GetItem()->ModifyCount(RemainingCount);
+
+			if (RemainingCount <= 0) return RemainingCount;
 		}
 	}
-	
-	// add new stacks with remaining count
+
+	// still count to add, so we make new item
 	while (RemainingCount > 0)
 	{
-		UXIUItemStack* Result = UXIUInventoryFunctionLibrary::MakeItemStackFromItem(OwnerComponent, ItemDefinition);  //@TODO: Using the actor instead of component as the outer due to UE-127172
-		const int NewRemainingCount = RemainingCount - Result->SetCount(RemainingCount);
-
-		// not able to add count to stack (max count = 0)
-		if (NewRemainingCount == RemainingCount)
+		ItemDefault.Count = RemainingCount;
+		if (TObjectPtr<UXIUItem> NewItem = UXIUInventoryFunctionLibrary::MakeItemFromDefault(OwnerComponent, ItemDefault))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Cannot add stacks with max count = 0"))
-			break;
-		}
-		
-		if (AddItemStackInEmptySlot(Result, false))
-		{
-			RemainingCount = NewRemainingCount;
-			AddedStacks.Add(Result);
-		}
-		// unable to add stack to inventory (probably full)
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Inventory is full, cannot add remaining stacks"))
-			break;
-		}
-	}
-	return Count - RemainingCount;
-}
-
-int FXIUInventoryList::AddItemStack(UXIUItemStack* ItemStack, bool bUpdateOwningInventory)
-{
-	check(ItemStack != nullptr);
-	check(CanManipulateInventory());
-
-	UE_LOG(LogTemp, Warning, TEXT("--AddItemStack--"))
-
-	int TotalAddedCount = 0;
-	
-	// add count to existing stacks
-	for (FXIUInventorySlot& Slot : Entries)
-	{
-		if (Slot.GetItemStack() && ItemStack->Matches(Slot.GetItemStack())) 
-		{
-			// add count to slot stack
-			int CountToAdd = ItemStack->GetCount();
-			int AddedCount = Slot.GetItemStack()->ModifyCount(CountToAdd);
-
-			if (AddedCount > 0)
+			UE_LOG(LogTemp, Warning, TEXT("Created new item"))
+			for (FXIUInventorySlot& Slot : Entries)
 			{
-				TotalAddedCount += AddedCount;
-				// remove count from original stack
-				ItemStack->ModifyCount(-AddedCount);
-				UE_LOG(LogTemp, Warning, TEXT("try add to existing stack (+ %i) : Remaining %i, Count %i"), CountToAdd, (CountToAdd - AddedCount), Slot.GetItemStack()->GetCount())
-			}
-			
-			// no more count to add (ItemStack->GetCount() == 0)
-			if (CountToAdd - AddedCount <= 0)
-			{
-				ItemStack->SetOwningInventoryComponent(nullptr);
-				break;
-			}
-		}
-	}
-	
-	// try to add stacks with remaining count
-	const int RemainingCount = ItemStack->GetCount();
-	if (RemainingCount > 0 && AddItemStackInEmptySlot(ItemStack, bUpdateOwningInventory))
-	{
-		TotalAddedCount += RemainingCount;
-	}
-	return TotalAddedCount;
-}
-
-bool FXIUInventoryList::AddItemStackInEmptySlot(UXIUItemStack* ItemStack, bool bUpdateOwningInventory)
-{
-	check(ItemStack != nullptr);
-	check(CanManipulateInventory());
-
-	for (FXIUInventorySlot& Slot : Entries)
-	{
-		// if slot is empty I can set stack
-		if (Slot.IsEmpty())
-		{
-			TObjectPtr<UXIUItemStack> OldStack;
-			// Check if the stack was actually set (might be impossible due to filters or locked stacks)
-			if (Slot.SetItemStack(ItemStack, OldStack))
-			{
-				if (bUpdateOwningInventory) ItemStack->SetOwningInventoryComponent(OwnerComponent);
-				MarkItemDirty(Slot);
-			
-				UE_LOG(LogTemp, Warning, TEXT("added new stack"))
-				return true;
-			}
-		}
-	}
-	return false;
-}
-
-bool FXIUInventoryList::RemoveItemStack(UXIUItemStack* ItemStack)
-{
-	check(ItemStack != nullptr);
-	check(CanManipulateInventory());
-	
-	for (FXIUInventorySlot& Slot : Entries)
-	{
-		if (Slot.GetItemStack() == ItemStack)
-		{
-			TObjectPtr<UXIUItemStack> RemovedStack;
-			return Slot.Clear(RemovedStack);
-		}
-	}
-	return false;
-}
-
-int FXIUInventoryList::RemoveCountFromItemStack(UXIUItemStack* ItemStack, int32 Count)
-{
-	checkf(Count > 0, TEXT("Cannot remove negative amounts"));
-	check(ItemStack != nullptr);
-	check(CanManipulateInventory());
-	
-	for (FXIUInventorySlot& Slot : Entries)
-	{
-		if (Slot.GetItemStack() == ItemStack)
-		{
-			Count += Slot.GetItemStack()->ModifyCount(-Count); // add to count the delta count which is negative, so im actually subtracting the count removed
-			if (Slot.GetItemStack()->GetCount() <= 0)
-			{
-				TObjectPtr<UXIUItemStack> RemovedStack;
-				if (Slot.Clear(RemovedStack))
+				if (Slot.IsEmpty())
 				{
-					if (RemovedStack) RemovedStack->SetOwningInventoryComponent(nullptr);
+					TObjectPtr<UXIUItem> OldItem;
+					if (Slot.SetItem(NewItem, OldItem))
+					{
+						UE_LOG(LogTemp, Warning, TEXT("Added new item"))
+						AddedItems.Add(NewItem);
+						RemainingCount -= NewItem->GetCount();
+						break;
+					}
+				}
+			}
+		}
+		break; // TODO: remove
+	}
+	return RemainingCount;
+}
+
+int FXIUInventoryList::AddItem(TObjectPtr<UXIUItem> Item, bool bDuplicate, TObjectPtr<UXIUItem>& AddedItem)
+{
+	check(CanManipulateInventory());
+
+	int RemainingCount = Item->GetCount();
+
+	// try to add count to existing items
+	for (FXIUInventorySlot& Slot : Entries)
+	{
+		if (!Slot.IsEmpty() && Slot.GetItem()->CanStack(Item))
+		{
+			RemainingCount -= Slot.GetItem()->ModifyCount(RemainingCount);
+
+			if (RemainingCount <= 0)
+			{
+				Item->SetCount(RemainingCount);
+				return RemainingCount;
+			}
+		}
+	}
+
+	// still count to add, so we make new item
+	Item->SetCount(RemainingCount);
+	if (TObjectPtr<UXIUItem> NewItem = bDuplicate ? UXIUInventoryFunctionLibrary::DuplicateItem(OwnerComponent, Item) : Item.Get())
+	{
+		for (FXIUInventorySlot& Slot : Entries)
+		{
+			if (Slot.IsEmpty())
+			{
+				TObjectPtr<UXIUItem> OldItem;
+				if (Slot.SetItem(NewItem, OldItem))
+				{
+					AddedItem = NewItem;
+					if (bDuplicate) Item->SetCount(0);
+					RemainingCount = 0;
+					break;
 				}
 			}
 		}
 	}
-	return Count;
+	return RemainingCount;
 }
 
-int FXIUInventoryList::ConsumeItem(UXIUItemDefinition* ItemDefinition, int32 Count)
+bool FXIUInventoryList::SetItemAtSlot(int SlotIndex, TObjectPtr<UXIUItem> Item, bool bDuplicate, TObjectPtr<UXIUItem>& AddedItem, TObjectPtr<UXIUItem>& OldItem)
 {
-	checkf(Count > 0, TEXT("Cannot consume negative amounts"));
-	check(ItemDefinition != nullptr);
 	check(CanManipulateInventory());
-	
-	for (FXIUInventorySlot& Slot : Entries)
-	{
-		if (Slot.GetItemStack() && Slot.GetItemStack()->GetItemDefinition() == ItemDefinition)
-		{
-			Count += Slot.GetItemStack()->ModifyCount(-Count); // add to count the delta count which is negative, so im actually subtracting the count removed
-			if (Slot.GetItemStack()->GetCount() <= 0)
-			{
-				TObjectPtr<UXIUItemStack> RemovedStack;
-				if (Slot.Clear(RemovedStack))
-				{
-					if (RemovedStack) RemovedStack->SetOwningInventoryComponent(nullptr);
-				}
-			}
-		}
-	}
-	return Count;
-}
+	checkf(SlotIndex < Entries.Num(), TEXT("The slot at index %i does not exist"), SlotIndex)
 
-bool FXIUInventoryList::SetItemStackInSlot(UXIUItemStack* ItemStack, int SlotIndex, TObjectPtr<UXIUItemStack>& OldStack, bool bUpdateOwningInventory)
-{
-	check(CanManipulateInventory());
-	checkf(SlotIndex <= Entries.Num(), TEXT("Cannot modify non existent slots"));
-	
-	for (FXIUInventorySlot& Slot : Entries)
+	if (TObjectPtr<UXIUItem> NewItem = bDuplicate ? UXIUInventoryFunctionLibrary::DuplicateItem(OwnerComponent, Item) : Item.Get())
 	{
-		if (Slot.GetIndex() == SlotIndex)
+		if (Entries[SlotIndex].SetItem(NewItem, OldItem))
 		{
-			if (Slot.SetItemStack(ItemStack, OldStack))
-			{
-				if (bUpdateOwningInventory && ItemStack) ItemStack->SetOwningInventoryComponent(OwnerComponent);
-				return true;
-			}
-			break;
+			AddedItem = NewItem;
+			return true;
 		}
 	}
 	return false;
 }
 
-bool FXIUInventoryList::ExtractItemStackFromSlot(int SlotIndex, TObjectPtr<UXIUItemStack>& ExtractedStack)
+TObjectPtr<UXIUItem> FXIUInventoryList::GetItemAtSlot(const int SlotIndex)
 {
-	check(CanManipulateInventory());
-	checkf(SlotIndex <= Entries.Num(), TEXT("Cannot modify non existent slots"));
-	
 	for (FXIUInventorySlot& Slot : Entries)
 	{
 		if (Slot.GetIndex() == SlotIndex)
 		{
-			return Slot.Clear(ExtractedStack);
+			return !Slot.IsEmpty() ? Slot.GetItem() : nullptr;
 		}
 	}
-	return false;
+	return nullptr;
+}
+
+TObjectPtr<UXIUItem> FXIUInventoryList::RemoveItemAtSlot(int SlotIndex)
+{
+	check(CanManipulateInventory());
+	checkf(SlotIndex < Entries.Num(), TEXT("The slot at index %i does not exist"), SlotIndex)
+
+	TObjectPtr<UXIUItem> OldItem;
+	Entries[SlotIndex].Clear(OldItem);
+	return OldItem;
+}
+
+bool FXIUInventoryList::GetItemsByClass(const TSubclassOf<UXIUItem> ItemClass, TArray<TObjectPtr<UXIUItem>>& FoundItems)
+{
+	for (FXIUInventorySlot& Slot : Entries)
+	{
+		if (!Slot.IsEmpty() && Slot.GetItem()->IsA(ItemClass))
+		{
+			FoundItems.Add(Slot.GetItem());
+		}
+	}
+	return FoundItems.Num() > 0;
+}
+
+int FXIUInventoryList::ConsumeItemByClass(const TSubclassOf<UXIUItem> ItemClass, const int Count)
+{
+	int ConsumedItems = 0;
+	for (FXIUInventorySlot& Slot : Entries)
+	{
+		if (!Slot.IsEmpty() && Slot.GetItem()->IsA(ItemClass))
+		{
+			ConsumedItems += -Slot.GetItem()->ModifyCount(-Count); // we are removing count, so the function returns a negative number representing the count removed
+		}
+	}
+	return ConsumedItems;
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
+
 
 
 
@@ -443,6 +391,21 @@ void UXIUInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
  * Inventory
  */
 
+void UXIUInventoryComponent::PrintItems()
+{
+	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, FString::Printf(TEXT("Inventory Size: %i"), Inventory.GetSize()));
+	for (const FXIUInventorySlot& Slot : Inventory.GetInventory())
+	{
+		if (!Slot.IsEmpty())
+		{
+			if (TObjectPtr<UXIUItem> Item = Slot.GetItem())
+			{
+				GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, FString::Printf(TEXT("[SLOT %i] Item: %s  ;  Count %i"), Slot.GetIndex(), *Item->GetItemName(), Item->GetCount()));
+			}
+		}
+	}
+}
+
 void UXIUInventoryComponent::AddDefaultItems()
 {
 	ServerAddDefaultItems();
@@ -452,60 +415,35 @@ void UXIUInventoryComponent::ServerAddDefaultItems_Implementation()
 {
 	if (GetOwner() && GetOwner()->HasAuthority())
     {
-    	for (TObjectPtr<UXIUItemDefinition> ItemDefinition : DefaultItems)
+    	for (const FXIUItemDefault DefaultItem : DefaultItems)
     	{
-    		AddItem(ItemDefinition, 2);
+    		AddItemDefault(DefaultItem);
     	}
     }
 }
 
-void UXIUInventoryComponent::PrintItems()
+void UXIUInventoryComponent::AddItemDefault(const FXIUItemDefault ItemDefault)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, FString::Printf(TEXT("Inventory Size: %i"), Inventory.GetSize()));
+	TArray<TObjectPtr<UXIUItem>> AddedItems;
+	Inventory.AddItemDefault(ItemDefault, AddedItems);
+	
+	for (TObjectPtr<UXIUItem> ItemToRegister : AddedItems)
+	{
+		RegisterReplicatedObject(ItemToRegister);
+	}
+}
+
+UXIUItem* UXIUInventoryComponent::GetFirstItem()
+{
 	for (const FXIUInventorySlot& Slot : Inventory.GetInventory())
 	{
-		if (UXIUItemStack* Stack = Slot.GetItemStack())
+		if (!Slot.IsEmpty())
 		{
-			GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, FString::Printf(TEXT("[SLOT %i] Item: %s  ;  Count %i ; Fragments: %i"), Slot.GetIndex(), *Stack->GetItemDefinition()->GetItemName(), Stack->GetCount(), Stack->GetAllFragments().Num()));
+			return Slot.GetItem();
 		}
 	}
+	return nullptr;
 }
-
-UXIUItemStack* UXIUInventoryComponent::GetStackAtSlot(int32 SlotIndex)
-{
-	return Inventory.GetStackAtSlot(SlotIndex);
-}
-
-TArray<UXIUItemStack*> UXIUInventoryComponent::AddItem(UXIUItemDefinition* ItemDefinition, const int32 Count)
-{
-	TArray<UXIUItemStack*> Result;
-	if (ItemDefinition != nullptr)
-	{
-		Inventory.AddItem(ItemDefinition, Count, Result);
-	}
-	return Result;
-}
-
-void UXIUInventoryComponent::AddItemStack(UXIUItemStack* ItemStack)
-{
-	if (ItemStack != nullptr)
-	{
-		Inventory.AddItemStack(ItemStack, true);
-	}
-}
-bool UXIUInventoryComponent::ConsumeItem(UXIUItemDefinition* ItemDefinition, int32 Count)
-{
-	if (ItemDefinition != nullptr)
-	{
-		if (Inventory.ConsumeItem(ItemDefinition, Count) == 0)
-		{
-			return true;
-		}
-	}
-	return false;
-}
-
-
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

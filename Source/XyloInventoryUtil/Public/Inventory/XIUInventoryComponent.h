@@ -9,10 +9,30 @@
 #include "XIUInventoryComponent.generated.h"
 
 
-class UXIUItemDefinition;
 struct FXIUInventoryList;
 class UXIUInventoryComponent;
-class UXIUItemStack;
+
+USTRUCT(BlueprintType)
+struct FXIUInventoryChangeMessage
+{
+	GENERATED_BODY()
+
+	//@TODO: Tag based names+owning actors for inventories instead of directly exposing the component?
+	UPROPERTY(BlueprintReadOnly, Category=Inventory)
+	TObjectPtr<UActorComponent> InventoryOwner = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, Category = Inventory)
+	TObjectPtr<UXIUItem> Item = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, Category=Inventory)
+	int32 NewCount = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category=Inventory)
+	int32 Delta = 0;
+};
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FXIUInventoryReplicatedSignature, const FXIUInventoryChangeMessage&, Change);
+
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -54,18 +74,21 @@ public:
 /*--------------------------------------------------------------------------------------------------------------------*/
 	
 /*--------------------------------------------------------------------------------------------------------------------*/
-	/* Stack */
+	/* Item */
 	
 private:
 	UPROPERTY()
-	TObjectPtr<UXIUItemStack> Stack = nullptr;
+	TObjectPtr<UXIUItem> Item = nullptr;
 public:
-	/** @return true if stack got modified */
-	bool Clear(TObjectPtr<UXIUItemStack>& OldStack);
-	/** @return true if stack got modified */
-	bool SetItemStack(TObjectPtr<UXIUItemStack> NewStack, TObjectPtr<UXIUItemStack>& OldStack);
-	UXIUItemStack* GetItemStack() const { return Stack; }
+	/** @return true if item got modified */
+	bool Clear(TObjectPtr<UXIUItem>& OldItem);
+	/** @return true if item got modified */
+	bool SetItem(const TObjectPtr<UXIUItem> NewItem, TObjectPtr<UXIUItem>& OldItem);
+	TObjectPtr<UXIUItem> GetItem() const;
 	bool IsEmpty() const;
+
+	UPROPERTY(NotReplicated)
+	int32 LastObservedCount = INDEX_NONE;
 	
 /*--------------------------------------------------------------------------------------------------------------------*/
 
@@ -76,9 +99,9 @@ private:
 	UPROPERTY()
 	TSubclassOf<UXIUItem> Filter;
 public:
-	void SetFilter(TSubclassOf<UXIUItem> NewFilter);
+	void SetFilter(const TSubclassOf<UXIUItem> NewFilter);
 	TSubclassOf<UXIUItem> GetFilter() const { return Filter; }
-	bool MatchesFilter(const TObjectPtr<UXIUItemStack> ItemStack) const;
+	bool MatchesFilter(const TObjectPtr<UXIUItem> TestItem) const;
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 	
@@ -124,7 +147,10 @@ public:
 private:
 	UPROPERTY(NotReplicated)
 	TObjectPtr<UXIUInventoryComponent> OwnerComponent;
-
+	
+	// Replicated list of items
+	UPROPERTY()
+	TArray<FXIUInventorySlot> Entries;
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 	/* FFastArraySerializer contract */
@@ -141,70 +167,59 @@ public:
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 	
-	
-private:
-	void BroadcastChangeMessage(FXIUInventorySlot& Entry, int32 OldCount, int32 NewCount);
 
-private:
-	bool CanManipulateInventory() const;
+/*--------------------------------------------------------------------------------------------------------------------*/
+	/* Helpers */
 	
-public:
-	void InitInventory(int Size);
+private:
+	void BroadcastChangeMessage(const FXIUInventorySlot& Entry, const int32 OldCount, const int32 NewCount) const;
+	bool CanManipulateInventory() const;
 
 public:
 	int GetSize() const { return Entries.Num(); }
+	const TArray<FXIUInventorySlot>& GetInventory() const { return Entries; };
 
+/*--------------------------------------------------------------------------------------------------------------------*/
+	
 /*--------------------------------------------------------------------------------------------------------------------*/
 	/* Slots Management */
 	
-private:
-	// Replicated list of items
-	UPROPERTY()
-	TArray<FXIUInventorySlot> Entries;
+public:
+	void InitInventory(int Size);
 	
 public:
-	const TArray<FXIUInventorySlot>& GetInventory() const;
-	UXIUItemStack* GetStackAtSlot(int SlotIndex);
+	/** Add a default item
+	 * @param ItemDefault: item to add
+	 * @param AddedItems: pointers to added items
+	 * @return Count of this item which was not added */
+	int AddItemDefault(FXIUItemDefault ItemDefault, TArray<TObjectPtr<UXIUItem>>& AddedItems);
+	/** Add an item
+	 * @param Item: item to add
+	 * @param bDuplicate: set to true if the Item was not created using this component
+	 * @param AddedItem: pointer to added item
+	 * @return Count of this item which was not added */
+	int AddItem(TObjectPtr<UXIUItem> Item, bool bDuplicate, TObjectPtr<UXIUItem>& AddedItem);
 
-public:
-	/** Add count of an item to the inventory. increases count of existing stacks if it can,
-	 * else tries to add a new stack with defaulted fragments
-	 * @return Count added */
-	 int AddItem(UXIUItemDefinition* ItemDefinition, int32 Count, TArray<UXIUItemStack*> AddedStacks);
-	/** Tries to add an item stack to the inventory, first by increasing count of existing matching stacks, then by adding
-	 * the stack itself with the remaining count
-	 * @return Count added */
-	int AddItemStack(UXIUItemStack* ItemStack, bool bUpdateOwningInventory = true);
-private:
-	/** Tries to add an item stack to the first empty slot which allows the stack to be inserted.
-	 * @return true if the stack got added */
-	bool AddItemStackInEmptySlot(UXIUItemStack* ItemStack, bool bUpdateOwningInventory);
+	/** Set item in slot
+	 ** @param SlotIndex: Slot to use
+	 * @param Item: item to add
+	 * @param bDuplicate: set to true if the Item was not created using this component
+	 * @param AddedItem: pointer to added item
+	 * @param OldItem: pointer to item that was previously in the slot
+	 * @return true if item got set */
+	bool SetItemAtSlot(int SlotIndex, TObjectPtr<UXIUItem> Item, bool bDuplicate, TObjectPtr<UXIUItem>& AddedItem, TObjectPtr<UXIUItem>& OldItem);
+	/** Get item in slot
+	 * @return pointer to item at index */
+	TObjectPtr<UXIUItem> GetItemAtSlot(const int SlotIndex);
+	/** Remove item at slot
+	 * @return pointer to removed Item */
+	TObjectPtr<UXIUItem> RemoveItemAtSlot(int SlotIndex);
 
-public:
-	/** Removes the stack from the inventory
-	 * @return true if the stack got removed*/
-	bool RemoveItemStack(UXIUItemStack* ItemStack);
-	/** Removes count from an item stack of this inventory
-	 * @return Count still to remove */
-	int RemoveCountFromItemStack(UXIUItemStack* ItemStack, int32 Count);
-	/** Removes count of an item in this inventory
-	 * @return Count still to remove */
-	int ConsumeItem(UXIUItemDefinition* ItemDefinition, int32 Count);
-
-public:
-	/** Set a stack in a slot
-	 * @param ItemStack: the stack to set
-	 * @param SlotIndex: index of the slot
-	 * @param OldStack: stack that was in the slot
-	 * @param bUpdateOwningInventory: if the owning inventory of ItemStack should be updated
-	 * @return true if stack got set */
-	bool SetItemStackInSlot(UXIUItemStack* ItemStack, int SlotIndex, TObjectPtr<UXIUItemStack>& OldStack, bool bUpdateOwningInventory);
-	/** Extract a stack from a slot
-	 * @param SlotIndex: index of the slot
-	 * @param ExtractedStack: stack that was in the slot
-	 * @return true if stack got extracted */
-	bool ExtractItemStackFromSlot(int SlotIndex, TObjectPtr<UXIUItemStack>& ExtractedStack);
-
+	/** @return true if any item was found */
+	bool GetItemsByClass(const TSubclassOf<UXIUItem> ItemClass, TArray<TObjectPtr<UXIUItem>>& FoundItems);
+	/** @return Count actually consumed */
+	int ConsumeItemByClass(const TSubclassOf<UXIUItem> ItemClass, const int Count);
+	
 /*--------------------------------------------------------------------------------------------------------------------*/
 	
 };
@@ -244,6 +259,10 @@ public:
 	 * Inventory
 	 */
 
+public:
+	UPROPERTY(BlueprintAssignable, Category = "Inventory")
+	FXIUInventoryReplicatedSignature InventoryReplicatedDelegate;
+	
 private:
  	UPROPERTY(Replicated)
  	FXIUInventoryList Inventory;
@@ -251,35 +270,28 @@ private:
 	int InventorySize;
 private:
 	UPROPERTY(EditAnywhere)
-	TArray<TObjectPtr<UXIUItemDefinition>> DefaultItems;
-
-	UPROPERTY(EditAnywhere)
-	TArray<UXIUItem*> DefaultItems2;
-
-	UPROPERTY(EditAnywhere)
-	UXIUItem* DefaultItems3;
+	TArray<FXIUItemDefault> DefaultItems;
 
 public:
-	UFUNCTION(BlueprintCallable, Category=Inventory)
-	void AddDefaultItems();
-	UFUNCTION(Server, Reliable, Category=Inventory)
-	void ServerAddDefaultItems();
-
-	UFUNCTION(BlueprintCallable, Category=Inventory)
+	UFUNCTION(BlueprintCallable, Category= "Inventory")
 	void PrintItems();
 
-	UFUNCTION(BlueprintCallable, Category=Inventory)
-	UXIUItemStack* GetStackAtSlot(int32 SlotIndex);
+public:
+	UFUNCTION(BlueprintCallable, Category= "Inventory")
+	void AddDefaultItems();
+	UFUNCTION(Server, Reliable, Category= "Inventory")
+	void ServerAddDefaultItems();
+
+	UFUNCTION(BlueprintCallable, Category= "Inventory")
+	void AddItemDefault(const FXIUItemDefault ItemDefault);
+
+	UFUNCTION(BlueprintCallable, Category= "Inventory")
+	UXIUItem* GetFirstItem();
+
+
+
 	
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category=Inventory)
-	TArray<UXIUItemStack*> AddItem(UXIUItemDefinition* ItemDefinition, const int32 Count = 1);
-
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category=Inventory)
-	void AddItemStack(UXIUItemStack* ItemStack);
-
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category=Inventory)
-	bool ConsumeItem(UXIUItemDefinition* ItemDefinition, int32 Count);
-
+	
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	/*
@@ -287,7 +299,6 @@ public:
 	 */
 	
 public:
-	
 	/**
 	 * Register a Replicated UObjects to replicate
 	 * 
@@ -305,17 +316,17 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Object Replication", DisplayName = "Unregister Replicated UObject")
 	virtual bool UnregisterReplicatedObject(UPARAM(DisplayName = "Replicated UObject") UObject* ObjectToUnregister);
 
+
+protected:
+	//All the currently replicated objects
+	UPROPERTY()
+	TArray<UObject*> ReplicatedObjects;
+public:
 	//Get all the replicated objects that are registered on this manager.
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Object Replication", DisplayName = "Get Registered Replicated UObjects")
 	virtual TArray<UObject*> GetRegisteredReplicatedObjects()
 	{
 		return ReplicatedObjects;
 	};
-
-protected:
-	
-	//All the currently replicated objects
-	UPROPERTY()
-	TArray<UObject*> ReplicatedObjects;
 	
 };

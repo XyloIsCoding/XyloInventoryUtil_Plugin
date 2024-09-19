@@ -3,19 +3,63 @@
 
 #include "Inventory/XIUItem.h"
 
-#include "Inventory/XIUItemStack.h"
+#include "Net/UnrealNetwork.h"
 
-void UXIUItem::Use_Implementation(AActor* User, UXIUItemStack* ItemStack) const
+
+UXIUItem::UXIUItem(const FObjectInitializer& ObjectInitializer)
+	:Super(ObjectInitializer)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Green, FString::Printf(TEXT("Use Item")));
+	Count = 0;
+	MaxCount = 1;
+	ItemMesh = nullptr;
 }
 
-void UXIUItem::UsageTick_Implementation(AActor* User, UXIUItemStack* ItemStack, float DeltaSeconds) const
+void UXIUItem::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
-	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Green, FString::Printf(TEXT("Still Using")));
+	UObject::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ThisClass, Count);
+	DOREPLIFETIME(ThisClass, MaxCount);
 }
 
-void UXIUItem::FinishUsing_Implementation(AActor* User, UXIUItemStack* ItemStack) const
+FString UXIUItem::GetItemName() const
 {
-	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Green, FString::Printf(TEXT("Finished Using")));
+	return ItemName;
+}
+
+int UXIUItem::GetCount() const
+{
+	return Count;
+}
+
+void UXIUItem::SetCount(int NewCount)
+{
+	Count = FMath::Clamp(NewCount, 0, MaxCount);
+	UE_LOG(LogTemp, Warning, TEXT("Set Count %i (requested %i. MaxCount %i)"), Count, NewCount, MaxCount)
+}
+
+int UXIUItem::ModifyCount(const int AddCount)
+{
+	const int OldCount = Count;
+	Count = FMath::Clamp(Count + AddCount, 0, MaxCount);
+	return Count - OldCount;
+}
+
+bool UXIUItem::IsEmpty() const
+{
+	return Count == 0;
+}
+
+bool UXIUItem::CanStack(UXIUItem* Item)
+{
+	if (!Item->IsA(GetClass())) return false;
+	return true;
+}
+
+UXIUItem* UXIUItem::Duplicate(UObject* Outer)
+{
+	UXIUItem* Item = NewObject<UXIUItem>(Outer, GetClass());
+	Item->Count = Count;
+	Item->MaxCount = MaxCount;
+	return Item;
 }

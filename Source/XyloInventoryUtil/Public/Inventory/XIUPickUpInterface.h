@@ -6,9 +6,10 @@
 #include "UObject/Interface.h"
 #include "XIUPickUpInterface.generated.h"
 
-class UXIUItemStack;
+class UXIUItem;
+
 // This class does not need to be modified.
-UINTERFACE(MinimalAPI)
+UINTERFACE(MinimalAPI, BlueprintType)
 class UXIUPickUpInterface : public UInterface
 {
 	GENERATED_BODY()
@@ -23,5 +24,5 @@ class XYLOINVENTORYUTIL_API IXIUPickUpInterface
 
 public:
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Item")
-	UXIUItemStack* GetItemStack();
+	UXIUItem* GetItem();
 };

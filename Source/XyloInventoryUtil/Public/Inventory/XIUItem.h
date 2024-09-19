@@ -7,24 +7,63 @@
 #include "XIUItem.generated.h"
 
 
-class UXIUItemStack;
+class UXIUItem;
+
+USTRUCT(BlueprintType)
+struct FXIUItemDefault
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSubclassOf<UXIUItem> ItemClass;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int Count;
+};
 
 /**
  * 
  */ 
-UCLASS(Blueprintable, BlueprintType, DefaultToInstanced)
+UCLASS(Blueprintable, BlueprintType)
 class XYLOINVENTORYUTIL_API UXIUItem : public UObject
 {
 	GENERATED_BODY()
 
-private:
-	friend UXIUItemStack;
+public:
+	UXIUItem(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	virtual bool IsSupportedForNetworking() const override { return true; }
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-protected:
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Item")
-	void Use(AActor* User, UXIUItemStack* ItemStack) const;
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Item")
-	void UsageTick(AActor* User, UXIUItemStack* ItemStack, float DeltaSeconds) const;
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Item")
-	void FinishUsing(AActor* User, UXIUItemStack* ItemStack) const;
+	
+private:
+	UPROPERTY(EditAnywhere, Category = "Item")
+	FString ItemName;
+	UPROPERTY(EditAnywhere, Replicated, Category = "Item")
+	int Count;
+	UPROPERTY(EditAnywhere, Replicated, Category = "Item")
+	int MaxCount;
+
+private:
+	UPROPERTY(EditAnywhere, Category = "Appearance")
+	UStaticMesh* ItemMesh;
+public:
+	UFUNCTION(BlueprintCallable, Category = "Appearance")
+	UStaticMesh* GetItemMesh() const { return ItemMesh; }
+
+public:
+	FString GetItemName() const;
+	
+	/** @return item count */
+	UFUNCTION(BlueprintCallable)
+	int GetCount() const;
+	/** Set the count of the item */
+	UFUNCTION(BlueprintCallable)
+	void SetCount(int NewCount);
+	/** @return count added */
+	UFUNCTION(BlueprintCallable)
+	int ModifyCount(const int AddCount);
+
+	bool IsEmpty() const;
+	virtual bool CanStack(UXIUItem* Item);
+	virtual UXIUItem* Duplicate(UObject* Outer);
+	
 };

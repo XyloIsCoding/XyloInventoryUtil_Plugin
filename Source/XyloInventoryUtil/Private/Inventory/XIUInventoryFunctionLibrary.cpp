@@ -2,22 +2,21 @@
 
 
 #include "Inventory/XIUInventoryFunctionLibrary.h"
-
 #include "Inventory/XIUInventoryComponent.h"
-#include "Inventory/XIUItemStack.h"
 
-UXIUItemStack* UXIUInventoryFunctionLibrary::MakeItemStackFromItem(UXIUInventoryComponent* InventoryComponent, TObjectPtr<UXIUItemDefinition> ItemDefinition)
+
+
+UXIUItem* UXIUInventoryFunctionLibrary::MakeItemFromDefault(UXIUInventoryComponent* InventoryComponent, FXIUItemDefault ItemDefault)
 {
-	if (!ItemDefinition) return nullptr;
+	if (!ItemDefault.ItemClass) return nullptr;
 	
-	UXIUItemStack* ItemStack = NewObject<UXIUItemStack>(InventoryComponent->GetOwner());
-	ItemStack->SetItemDefinition(ItemDefinition);
-	ItemStack->SetOwningInventoryComponent(InventoryComponent);
-	return ItemStack;
+	UXIUItem* Item = NewObject<UXIUItem>(InventoryComponent->GetOwner(), ItemDefault.ItemClass);
+	Item->SetCount(ItemDefault.Count);
+	return Item;
 }
 
-UXIUItemStack* UXIUInventoryFunctionLibrary::DuplicateItemStack(UXIUInventoryComponent* InventoryComponent, TObjectPtr<UXIUItemStack> ItemStack)
+UXIUItem* UXIUInventoryFunctionLibrary::DuplicateItem(UXIUInventoryComponent* InventoryComponent, UXIUItem* Item)
 {
-	checkf(ItemStack, TEXT("Cannot duplicate null stack"));
-	return ItemStack->Duplicate(InventoryComponent);
+	checkf(Item, TEXT("Cannot duplicate null stack"));
+	return Item->Duplicate(InventoryComponent);
 }
