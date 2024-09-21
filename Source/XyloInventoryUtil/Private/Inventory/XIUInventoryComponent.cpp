@@ -112,7 +112,8 @@ void FXIUInventoryList::PreReplicatedRemove(const TArrayView<int32> RemovedIndic
 	for (int32 Index : RemovedIndices)
 	{
 		FXIUInventorySlot& Slot = Entries[Index];
-		BroadcastChangeMessage(Slot, /*OldCount=*/ Slot.GetItem()->GetCount(), /*NewCount=*/ 0);
+		int OldCount = Slot.GetItem() ? Slot.GetItem()->GetCount() : 0;
+		BroadcastChangeMessage(Slot, /*OldCount=*/ OldCount, /*NewCount=*/ 0);
 		Slot.LastObservedCount = 0;
 	}
 }
@@ -122,8 +123,9 @@ void FXIUInventoryList::PostReplicatedAdd(const TArrayView<int32> AddedIndices, 
 	for (int32 Index : AddedIndices)
 	{
 		FXIUInventorySlot& Slot = Entries[Index];
-		BroadcastChangeMessage(Slot, /*OldCount=*/ 0, /*NewCount=*/ Slot.GetItem()->GetCount());
-		Slot.LastObservedCount = Slot.GetItem()->GetCount();
+		int NewCount = Slot.GetItem() ? Slot.GetItem()->GetCount() : 0;
+		BroadcastChangeMessage(Slot, /*OldCount=*/ 0, /*NewCount=*/ NewCount);
+		Slot.LastObservedCount = NewCount;
 	}
 }
 
@@ -133,8 +135,9 @@ void FXIUInventoryList::PostReplicatedChange(const TArrayView<int32> ChangedIndi
 	{
 		FXIUInventorySlot& Slot = Entries[Index];
 		check(Slot.LastObservedCount != INDEX_NONE);
-		BroadcastChangeMessage(Slot, /*OldCount=*/ Slot.LastObservedCount, /*NewCount=*/ Slot.GetItem()->GetCount());
-		Slot.LastObservedCount = Slot.GetItem()->GetCount();
+		int NewCount = Slot.GetItem() ? Slot.GetItem()->GetCount() : 0;
+		BroadcastChangeMessage(Slot, /*OldCount=*/ Slot.LastObservedCount, /*NewCount=*/ NewCount);
+		Slot.LastObservedCount = NewCount;
 	}
 }
 
@@ -192,8 +195,13 @@ int FXIUInventoryList::AddItemDefault(FXIUItemDefault ItemDefault, TArray<TObjec
 	{
 		if (!Slot.IsEmpty() && Slot.GetItem().IsA(ItemDefault.ItemClass))
 		{
-			RemainingCount -= Slot.GetItem()->ModifyCount(RemainingCount);
-
+			const int ModifiedCount = Slot.GetItem()->ModifyCount(RemainingCount);
+			if (ModifiedCount != 0)
+			{
+				RemainingCount -= ModifiedCount;
+				// TODO broadcast change
+			}
+			
 			if (RemainingCount <= 0) return RemainingCount;
 		}
 	}
@@ -212,6 +220,8 @@ int FXIUInventoryList::AddItemDefault(FXIUItemDefault ItemDefault, TArray<TObjec
 					TObjectPtr<UXIUItem> OldItem;
 					if (Slot.SetItem(NewItem, OldItem))
 					{
+						MarkItemDirty(Slot);
+						// TODO broadcast change
 						UE_LOG(LogTemp, Warning, TEXT("Added new item"))
 						AddedItems.Add(NewItem);
 						RemainingCount -= NewItem->GetCount();
@@ -369,6 +379,7 @@ void UXIUInventoryComponent::BeginPlay()
 	{
 		Inventory.InitInventory(FMath::Max(InventorySize, DefaultItems.Num()));
 		AddDefaultItems();
+		InventoryInitializedServerDelegate.Broadcast();
 	}
 }
 

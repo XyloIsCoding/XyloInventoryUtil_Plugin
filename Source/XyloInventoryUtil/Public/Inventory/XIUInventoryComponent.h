@@ -40,7 +40,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FXIUInventoryReplicatedSignature, co
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /*
- * FXIUInventorySlot Interface
+ * FXIUInventorySlot
  */
 
 /** A single entry in an inventory */
@@ -124,7 +124,7 @@ public:
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /*
- * FXIUInventoryList Interface
+ * FXIUInventoryList
  */
 
 /** List of inventory items */
@@ -224,6 +224,15 @@ public:
 	
 };
 
+template<>
+struct TStructOpsTypeTraits<FXIUInventoryList> : public TStructOpsTypeTraitsBase2<FXIUInventoryList>
+{
+	enum { WithNetDeltaSerializer = true };
+};
+
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FXIUInventoryInitializedServerSignature);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FXIUInventoryChangedServerSignature, const FXIUInventoryChangeMessage&, Change);
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -262,6 +271,12 @@ public:
 public:
 	UPROPERTY(BlueprintAssignable, Category = "Inventory")
 	FXIUInventoryReplicatedSignature InventoryReplicatedDelegate;
+
+	UPROPERTY(BlueprintAssignable, Category = "Inventory")
+	FXIUInventoryInitializedServerSignature InventoryInitializedServerDelegate;
+
+	UPROPERTY(BlueprintAssignable, Category = "Inventory")
+	FXIUInventoryChangedServerSignature InventoryChangedServerDelegate;
 	
 private:
  	UPROPERTY(Replicated)
@@ -299,21 +314,12 @@ public:
 	 */
 	
 public:
-	/**
-	 * Register a Replicated UObjects to replicate
-	 * 
-	 * @param ObjectToRegister The Replicated UObject to register.
-	 */
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Object Replication", DisplayName = "Register Replicated UObject")
+	/** Register a Replicated UObjects to replicate
+	 * @param ObjectToRegister The Replicated UObject to register. */
 	virtual bool RegisterReplicatedObject(UPARAM(DisplayName = "Replicated UObject") UObject* ObjectToRegister);
 
-	/**
-	 * Unregister a Replicated UObject from replication
-	 * 
-	 * @param ObjectToUnregister The Replicated UObject to unregister.
-	 * @param bDestroyObject If the UObject Replication Manager should mark the Replicated UObject as garbage for the garbage collector, after it has unregistered the Replicated UObject.
-	 */
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Object Replication", DisplayName = "Unregister Replicated UObject")
+	/** Unregister a Replicated UObject from replication
+	 * @param ObjectToUnregister The Replicated UObject to unregister. */
 	virtual bool UnregisterReplicatedObject(UPARAM(DisplayName = "Replicated UObject") UObject* ObjectToUnregister);
 
 
@@ -322,11 +328,7 @@ protected:
 	UPROPERTY()
 	TArray<UObject*> ReplicatedObjects;
 public:
-	//Get all the replicated objects that are registered on this manager.
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Object Replication", DisplayName = "Get Registered Replicated UObjects")
-	virtual TArray<UObject*> GetRegisteredReplicatedObjects()
-	{
-		return ReplicatedObjects;
-	};
+	//Get all the replicated objects that are registered on this component.
+	virtual TArray<UObject*> GetRegisteredReplicatedObjects() { return ReplicatedObjects; }
 	
 };
