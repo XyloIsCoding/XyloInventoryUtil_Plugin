@@ -77,6 +77,11 @@ bool FXIUInventorySlot::MatchesFilter(const TObjectPtr<UXIUItem> TestItem) const
 	return !Filter || !TestItem || (TestItem->IsA(Filter));
 }
 
+bool FXIUInventorySlot::MatchesFilterByClass(const TSubclassOf<UXIUItem> TestItemClass) const
+{
+	return !Filter || TestItemClass && (TestItemClass->IsChildOf(Filter));
+}
+
 /*--------------------------------------------------------------------------------------------------------------------*/
 	
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -189,9 +194,10 @@ void FXIUInventoryList::InitInventory(int Size)
 int FXIUInventoryList::AddItemDefault(FXIUItemDefault ItemDefault, TArray<TObjectPtr<UXIUItem>>& AddedItems)
 {
 	check(CanManipulateInventory());
-
-	UE_LOG(LogTemp, Warning, TEXT("Adding count %i"), ItemDefault.Count)
+	checkf(ItemDefault.ItemClass, TEXT("Cannot add item of not specified class"))
+	
 	int RemainingCount = ItemDefault.Count;
+	if (RemainingCount <= 0) return RemainingCount;
 
 	// try to add count to existing items
 	for (FXIUInventorySlot& Slot : Entries)
@@ -205,36 +211,39 @@ int FXIUInventoryList::AddItemDefault(FXIUItemDefault ItemDefault, TArray<TObjec
 				RemainingCount -= ModifiedCount;
 			}
 			
-			if (RemainingCount <= 0) return RemainingCount;
+			if (RemainingCount <= 0)
+			{
+				return RemainingCount;
+			}
 		}
 	}
-
-	// still count to add, so we make new item
-	while (RemainingCount > 0)
+	
+	
+	// still count to add
+	for (FXIUInventorySlot& Slot : Entries)
 	{
-		ItemDefault.Count = RemainingCount;
-		if (TObjectPtr<UXIUItem> NewItem = UXIUInventoryFunctionLibrary::MakeItemFromDefault(OwnerComponent->GetOwner(), ItemDefault))
+		//check if I can add the item
+		if (Slot.IsEmpty() && !Slot.IsLocked() && Slot.MatchesFilterByClass(ItemDefault.ItemClass))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Created new item"))
-			for (FXIUInventorySlot& Slot : Entries)
+			ItemDefault.Count = RemainingCount;
+			if (TObjectPtr<UXIUItem> NewItem = UXIUInventoryFunctionLibrary::MakeItemFromDefault(OwnerComponent->GetOwner(), ItemDefault))
 			{
-				if (Slot.IsEmpty())
+				TObjectPtr<UXIUItem> OldItem;
+				if (Slot.SetItem(NewItem, OldItem))
 				{
-					TObjectPtr<UXIUItem> OldItem;
-					if (Slot.SetItem(NewItem, OldItem))
+					MarkItemDirty(Slot);
+					OwnerComponent->InventoryChangedServerDelegate.Broadcast();
+				
+					AddedItems.Add(NewItem);
+					RemainingCount -= NewItem->GetCount();
+					
+					if (RemainingCount <= 0)
 					{
-						UE_LOG(LogTemp, Warning, TEXT("Added new item"))
-						MarkItemDirty(Slot);
-						OwnerComponent->InventoryChangedServerDelegate.Broadcast();
-						
-						AddedItems.Add(NewItem);
-						RemainingCount -= NewItem->GetCount();
-						break;
+						return RemainingCount;
 					}
 				}
 			}
 		}
-		break; // TODO: remove
 	}
 	return RemainingCount;
 }
@@ -242,8 +251,10 @@ int FXIUInventoryList::AddItemDefault(FXIUItemDefault ItemDefault, TArray<TObjec
 int FXIUInventoryList::AddItem(TObjectPtr<UXIUItem> Item, bool bDuplicate, TObjectPtr<UXIUItem>& AddedItem)
 {
 	check(CanManipulateInventory());
+	checkf(Item, TEXT("Cannot add item invalid item"))
 
 	int RemainingCount = Item->GetCount();
+	if (RemainingCount <= 0) return RemainingCount;
 
 	// try to add count to existing items
 	for (FXIUInventorySlot& Slot : Entries)

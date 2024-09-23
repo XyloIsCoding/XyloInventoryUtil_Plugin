@@ -114,6 +114,7 @@ public:
 	void SetFilter(const TSubclassOf<UXIUItem> NewFilter);
 	TSubclassOf<UXIUItem> GetFilter() const { return Filter; }
 	bool MatchesFilter(const TObjectPtr<UXIUItem> TestItem) const;
+	bool MatchesFilterByClass(const TSubclassOf<UXIUItem> TestItem) const;
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 	
@@ -125,7 +126,7 @@ private:
 	bool bLocked;
 public:
 	void SetLocked(bool NewLock);
-	bool GetLocked() const { return bLocked; }
+	bool IsLocked() const { return bLocked; }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 };
