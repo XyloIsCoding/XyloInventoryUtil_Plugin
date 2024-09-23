@@ -6,17 +6,17 @@
 
 
 
-UXIUItem* UXIUInventoryFunctionLibrary::MakeItemFromDefault(UXIUInventoryComponent* InventoryComponent, FXIUItemDefault ItemDefault)
+UXIUItem* UXIUInventoryFunctionLibrary::MakeItemFromDefault(UObject* Outer, FXIUItemDefault ItemDefault)
 {
 	if (!ItemDefault.ItemClass) return nullptr;
 	
-	UXIUItem* Item = NewObject<UXIUItem>(InventoryComponent->GetOwner(), ItemDefault.ItemClass);
+	UXIUItem* Item = NewObject<UXIUItem>(Outer, ItemDefault.ItemClass);
 	Item->SetCount(ItemDefault.Count);
 	return Item;
 }
 
-UXIUItem* UXIUInventoryFunctionLibrary::DuplicateItem(UXIUInventoryComponent* InventoryComponent, UXIUItem* Item)
+UXIUItem* UXIUInventoryFunctionLibrary::DuplicateItem(UObject* Outer, UXIUItem* Item)
 {
 	checkf(Item, TEXT("Cannot duplicate null stack"));
-	return Item->Duplicate(InventoryComponent);
+	return Item->Duplicate(Outer);
 }

@@ -19,9 +19,10 @@ class XYLOINVENTORYUTIL_API UXIUInventoryFunctionLibrary : public UBlueprintFunc
 
 public:
 	UFUNCTION(BlueprintCallable)
-	static UXIUItem* MakeItemFromDefault(UXIUInventoryComponent* InventoryComponent, FXIUItemDefault ItemDefault);
-	/** @param InventoryComponent: if nullptr keeps the ItemStack owner
+	static UXIUItem* MakeItemFromDefault(UObject* Outer, FXIUItemDefault ItemDefault);
+	/** @param Outer: if nullptr keeps the ItemStack owner
 	 * @param Item: the item to duplicate
 	 * @return a new item stack, copy of the first one */
-	static UXIUItem* DuplicateItem(UXIUInventoryComponent* InventoryComponent, UXIUItem* Item);
+	UFUNCTION(BlueprintCallable)
+	static UXIUItem* DuplicateItem(UObject* Outer, UXIUItem* Item);
 };

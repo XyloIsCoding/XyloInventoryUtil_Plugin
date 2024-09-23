@@ -21,7 +21,7 @@ struct FXIUItemDefault
 };
 
 /**
- * 
+ * if IsEmpty() returns false, do not use this item. consider it as nullptr.
  */ 
 UCLASS(Blueprintable, BlueprintType)
 class XYLOINVENTORYUTIL_API UXIUItem : public UObject
@@ -62,8 +62,11 @@ public:
 	UFUNCTION(BlueprintCallable)
 	int ModifyCount(const int AddCount);
 
+	UFUNCTION(BlueprintCallable)
 	bool IsEmpty() const;
+	UFUNCTION(BlueprintCallable)
 	virtual bool CanStack(UXIUItem* Item);
+	UFUNCTION(BlueprintCallable)
 	virtual UXIUItem* Duplicate(UObject* Outer);
 	
 };

@@ -8,8 +8,12 @@
 
 AXIUInventoryActor::AXIUInventoryActor()
 {
+	bReplicates = true;
 	PrimaryActorTick.bCanEverTick = false;
+	
 	InventoryComponent = CreateDefaultSubobject<UXIUInventoryComponent>(TEXT("InventoryComponent"));
+	InventoryComponent->InventoryInitializedServerDelegate.AddDynamic(this, &AXIUInventoryActor::OnInventoryInitialized);
+	InventoryComponent->InventoryChangedServerDelegate.AddDynamic(this, &AXIUInventoryActor::OnInventoryChanged);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -23,22 +27,21 @@ void AXIUInventoryActor::BeginPlay()
 	Super::BeginPlay();
 }
 
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /*
- * IXIUPickUpInterface Interface
+ * IXIUInventoryInterface Interface
  */
 
-UXIUItem* AXIUInventoryActor::GetItem_Implementation()
+void AXIUInventoryActor::OnInventoryInitialized()
 {
-	if (InventoryComponent)
-	{
-		return InventoryComponent->GetFirstItem();
-	}
-	return nullptr;
+	BP_OnInventoryInitialized();
 }
 
+void AXIUInventoryActor::OnInventoryChanged()
+{
+	BP_OnInventoryChanged();
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -46,17 +49,6 @@ UXIUItem* AXIUInventoryActor::GetItem_Implementation()
  * InventoryActor 
  */
 
-void AXIUInventoryActor::UpdateItemMesh()
-{
-	if (UXIUItem* ItemToDisplay = Execute_GetItem(this))
-	{
-		if (UStaticMesh* NewMesh = ItemToDisplay->GetItemMesh())
-		{
-			ItemMesh = NewMesh;
-			return;
-		}
-	}
-	ItemMesh = nullptr;
-}
+
 
 

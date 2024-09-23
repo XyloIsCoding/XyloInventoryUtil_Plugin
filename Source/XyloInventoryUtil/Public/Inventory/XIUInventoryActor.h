@@ -4,17 +4,15 @@
 
 #include "CoreMinimal.h"
 #include "XIUInventoryInterface.h"
-#include "XIUItem.h"
-#include "XIUPickUpInterface.h"
 #include "GameFramework/Actor.h"
 #include "XIUInventoryActor.generated.h"
 
-struct FXIUInventoryChangeMessage;
+struct FXIUInventorySlotChangeMessage;
 class UXIUInventoryComponent;
 struct FXIUItemDefault;
 
 UCLASS()
-class XYLOINVENTORYUTIL_API AXIUInventoryActor : public AActor, public IXIUInventoryInterface, public IXIUPickUpInterface
+class XYLOINVENTORYUTIL_API AXIUInventoryActor : public AActor, public IXIUInventoryInterface
 {
 	GENERATED_BODY()
 	
@@ -40,30 +38,25 @@ public:
 	virtual UXIUInventoryComponent* GetInventoryComponent_Implementation() override { return InventoryComponent; }
 	
 private:
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess))
 	UXIUInventoryComponent* InventoryComponent;
+
+protected:
+	UFUNCTION()
+	virtual void OnInventoryInitialized();
+	UFUNCTION()
+	virtual void OnInventoryChanged();
+
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "OnInventoryInitialized"))
+	void BP_OnInventoryInitialized();
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "OnInventoryChanged"))
+	void BP_OnInventoryChanged();
+
 	
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-	/*
-	 * IXIUPickUpInterface Interface
-	 */
-
-public:
-	virtual UXIUItem* GetItem_Implementation() override;
-
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	/*
 	 * InventoryActor 
 	 */
-
-private:
-	UPROPERTY(EditAnywhere)
-	UStaticMesh* ItemMesh;
-
-private:
-	void UpdateItemMesh();
 	
 };

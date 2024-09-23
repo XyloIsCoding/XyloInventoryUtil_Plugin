@@ -149,13 +149,16 @@ void FXIUInventoryList::PostReplicatedChange(const TArrayView<int32> ChangedIndi
 
 void FXIUInventoryList::BroadcastChangeMessage(const FXIUInventorySlot& Entry, const int32 OldCount, const int32 NewCount) const
 {
-	FXIUInventoryChangeMessage Message;
+	FXIUInventorySlotChangeMessage Message;
 	Message.InventoryOwner = OwnerComponent;
+	Message.Index = Entry.Index;
 	Message.Item = Entry.GetItem();
 	Message.NewCount = NewCount;
 	Message.Delta = NewCount - OldCount;
+	Message.Filter = Entry.Filter;
+	Message.bLocked = Entry.bLocked;
 
-	if (OwnerComponent) OwnerComponent->InventoryReplicatedDelegate.Broadcast(Message);
+	if (OwnerComponent) OwnerComponent->InventorySlotReplicatedDelegate.Broadcast(Message);
 }
 
 bool FXIUInventoryList::CanManipulateInventory() const
@@ -198,8 +201,8 @@ int FXIUInventoryList::AddItemDefault(FXIUItemDefault ItemDefault, TArray<TObjec
 			const int ModifiedCount = Slot.GetItem()->ModifyCount(RemainingCount);
 			if (ModifiedCount != 0)
 			{
+				OwnerComponent->InventoryChangedServerDelegate.Broadcast();
 				RemainingCount -= ModifiedCount;
-				// TODO broadcast change
 			}
 			
 			if (RemainingCount <= 0) return RemainingCount;
@@ -210,7 +213,7 @@ int FXIUInventoryList::AddItemDefault(FXIUItemDefault ItemDefault, TArray<TObjec
 	while (RemainingCount > 0)
 	{
 		ItemDefault.Count = RemainingCount;
-		if (TObjectPtr<UXIUItem> NewItem = UXIUInventoryFunctionLibrary::MakeItemFromDefault(OwnerComponent, ItemDefault))
+		if (TObjectPtr<UXIUItem> NewItem = UXIUInventoryFunctionLibrary::MakeItemFromDefault(OwnerComponent->GetOwner(), ItemDefault))
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Created new item"))
 			for (FXIUInventorySlot& Slot : Entries)
@@ -220,9 +223,10 @@ int FXIUInventoryList::AddItemDefault(FXIUItemDefault ItemDefault, TArray<TObjec
 					TObjectPtr<UXIUItem> OldItem;
 					if (Slot.SetItem(NewItem, OldItem))
 					{
-						MarkItemDirty(Slot);
-						// TODO broadcast change
 						UE_LOG(LogTemp, Warning, TEXT("Added new item"))
+						MarkItemDirty(Slot);
+						OwnerComponent->InventoryChangedServerDelegate.Broadcast();
+						
 						AddedItems.Add(NewItem);
 						RemainingCount -= NewItem->GetCount();
 						break;
@@ -246,7 +250,12 @@ int FXIUInventoryList::AddItem(TObjectPtr<UXIUItem> Item, bool bDuplicate, TObje
 	{
 		if (!Slot.IsEmpty() && Slot.GetItem()->CanStack(Item))
 		{
-			RemainingCount -= Slot.GetItem()->ModifyCount(RemainingCount);
+			const int ModifiedCount = Slot.GetItem()->ModifyCount(RemainingCount);
+			if (ModifiedCount != 0)
+			{
+				OwnerComponent->InventoryChangedServerDelegate.Broadcast();
+				RemainingCount -= ModifiedCount;
+			}
 
 			if (RemainingCount <= 0)
 			{
@@ -258,7 +267,7 @@ int FXIUInventoryList::AddItem(TObjectPtr<UXIUItem> Item, bool bDuplicate, TObje
 
 	// still count to add, so we make new item
 	Item->SetCount(RemainingCount);
-	if (TObjectPtr<UXIUItem> NewItem = bDuplicate ? UXIUInventoryFunctionLibrary::DuplicateItem(OwnerComponent, Item) : Item.Get())
+	if (TObjectPtr<UXIUItem> NewItem = bDuplicate ? UXIUInventoryFunctionLibrary::DuplicateItem(OwnerComponent->GetOwner(), Item) : Item.Get())
 	{
 		for (FXIUInventorySlot& Slot : Entries)
 		{
@@ -267,6 +276,9 @@ int FXIUInventoryList::AddItem(TObjectPtr<UXIUItem> Item, bool bDuplicate, TObje
 				TObjectPtr<UXIUItem> OldItem;
 				if (Slot.SetItem(NewItem, OldItem))
 				{
+					MarkItemDirty(Slot);
+					OwnerComponent->InventoryChangedServerDelegate.Broadcast();
+					
 					AddedItem = NewItem;
 					if (bDuplicate) Item->SetCount(0);
 					RemainingCount = 0;
@@ -282,11 +294,15 @@ bool FXIUInventoryList::SetItemAtSlot(int SlotIndex, TObjectPtr<UXIUItem> Item, 
 {
 	check(CanManipulateInventory());
 	checkf(SlotIndex < Entries.Num(), TEXT("The slot at index %i does not exist"), SlotIndex)
-
-	if (TObjectPtr<UXIUItem> NewItem = bDuplicate ? UXIUInventoryFunctionLibrary::DuplicateItem(OwnerComponent, Item) : Item.Get())
+	
+	if (TObjectPtr<UXIUItem> NewItem = bDuplicate ? UXIUInventoryFunctionLibrary::DuplicateItem(OwnerComponent->GetOwner(), Item) : Item.Get())
 	{
-		if (Entries[SlotIndex].SetItem(NewItem, OldItem))
+		FXIUInventorySlot& Slot = Entries[SlotIndex];
+		if (Slot.SetItem(NewItem, OldItem))
 		{
+			MarkItemDirty(Slot);
+			OwnerComponent->InventoryChangedServerDelegate.Broadcast();
+			
 			AddedItem = NewItem;
 			return true;
 		}
@@ -312,7 +328,12 @@ TObjectPtr<UXIUItem> FXIUInventoryList::RemoveItemAtSlot(int SlotIndex)
 	checkf(SlotIndex < Entries.Num(), TEXT("The slot at index %i does not exist"), SlotIndex)
 
 	TObjectPtr<UXIUItem> OldItem;
-	Entries[SlotIndex].Clear(OldItem);
+	FXIUInventorySlot& Slot = Entries[SlotIndex];
+	Slot.Clear(OldItem);
+
+	MarkItemDirty(Slot);
+	OwnerComponent->InventoryChangedServerDelegate.Broadcast();
+	
 	return OldItem;
 }
 
@@ -330,15 +351,24 @@ bool FXIUInventoryList::GetItemsByClass(const TSubclassOf<UXIUItem> ItemClass, T
 
 int FXIUInventoryList::ConsumeItemByClass(const TSubclassOf<UXIUItem> ItemClass, const int Count)
 {
-	int ConsumedItems = 0;
+	int RemainingCount = Count;
+
+	// try to add count to existing items
 	for (FXIUInventorySlot& Slot : Entries)
 	{
-		if (!Slot.IsEmpty() && Slot.GetItem()->IsA(ItemClass))
+		if (!Slot.IsEmpty() && Slot.GetItem().IsA(ItemClass))
 		{
-			ConsumedItems += -Slot.GetItem()->ModifyCount(-Count); // we are removing count, so the function returns a negative number representing the count removed
+			const int ConsumedCount = -Slot.GetItem()->ModifyCount(-RemainingCount); // we are removing count, so the function returns a negative number representing the count removed
+			if (ConsumedCount != 0)
+			{
+				OwnerComponent->InventoryChangedServerDelegate.Broadcast();
+				RemainingCount -= ConsumedCount;
+			}
+			
+			if (RemainingCount <= 0) break;
 		}
 	}
-	return ConsumedItems;
+	return Count - RemainingCount; // Consumed items
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -435,12 +465,39 @@ void UXIUInventoryComponent::ServerAddDefaultItems_Implementation()
 
 void UXIUInventoryComponent::AddItemDefault(const FXIUItemDefault ItemDefault)
 {
-	TArray<TObjectPtr<UXIUItem>> AddedItems;
-	Inventory.AddItemDefault(ItemDefault, AddedItems);
-	
-	for (TObjectPtr<UXIUItem> ItemToRegister : AddedItems)
+	if (GetOwner() && GetOwner()->HasAuthority())
 	{
-		RegisterReplicatedObject(ItemToRegister);
+		TArray<TObjectPtr<UXIUItem>> AddedItems;
+		Inventory.AddItemDefault(ItemDefault, AddedItems);
+	
+		for (TObjectPtr<UXIUItem> ItemToRegister : AddedItems)
+		{
+			RegisterReplicatedObject(ItemToRegister);
+		}
+	}
+}
+
+void UXIUInventoryComponent::AddItem(UXIUItem* Item)
+{
+	if (GetOwner() && GetOwner()->HasAuthority())
+	{
+		TObjectPtr<UXIUItem> AddedItem;
+		Inventory.AddItem(Item, true, AddedItem);
+
+		if (AddedItem) RegisterReplicatedObject(AddedItem);
+	}
+}
+
+void UXIUInventoryComponent::TransferItemFromSlot(int SlotIndex, UXIUInventoryComponent* OtherInventory)
+{
+	if (GetOwner() && GetOwner()->HasAuthority())
+	{
+		if (TObjectPtr<UXIUItem> Item = Inventory.GetItemAtSlot(SlotIndex))
+		{
+			// we can just use add item since Inventory.AddItem already takes care of modifying Item count
+			OtherInventory->AddItem(Item);
+			InventoryChangedServerDelegate.Broadcast();
+		}
 	}
 }
 
@@ -454,6 +511,11 @@ UXIUItem* UXIUInventoryComponent::GetFirstItem()
 		}
 	}
 	return nullptr;
+}
+
+void UXIUInventoryComponent::ManuallyChangedInventory()
+{
+	InventoryChangedServerDelegate.Broadcast();
 }
 
 
