@@ -71,5 +71,9 @@ protected:
 	/*
 	 * InventoryActor 
 	 */
+
+private:
+	UPROPERTY(EditAnywhere, Category = "Inventory")
+	bool bDestroyOnEmpty;
 	
 };

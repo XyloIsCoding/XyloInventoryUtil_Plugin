@@ -32,16 +32,22 @@ void AXIUItemActor::BeginPlay()
  * IXIUPickUpInterface Interface
  */
 
+UXIUItem* AXIUItemActor::GetItem_Implementation()
+{
+	if (!Item->IsEmpty()) return Item;
+	return nullptr;
+}
+
 bool AXIUItemActor::TryPickUp_Implementation(UXIUInventoryComponent* OtherInventory)
 {
 	if (!OtherInventory) return false;
 	
-	if (UXIUItem* Item = Execute_GetItem(this))
+	if (UXIUItem* GotItem = Execute_GetItem(this))
 	{
-		OtherInventory->AddItem(Item);
+		OtherInventory->AddItem(GotItem);
 
 		// no item count left
-		if (Item->IsEmpty())
+		if (GotItem->IsEmpty())
 		{
 			Destroy();
 		}

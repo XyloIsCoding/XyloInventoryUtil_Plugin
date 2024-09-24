@@ -42,9 +42,9 @@ bool AXIUInventoryActor::TryPickUp_Implementation(UXIUInventoryComponent* OtherI
 {
 	if (!OtherInventory) return false;
 	
-	if (UXIUItem* Item = Execute_GetItem(this))
+	if (UXIUItem* GotItem = Execute_GetItem(this))
 	{
-		OtherInventory->AddItem(Item);
+		OtherInventory->AddItem(GotItem);
 		InventoryComponent->ManuallyChangedInventory();
 		return true;
 	}
@@ -61,6 +61,8 @@ void AXIUInventoryActor::OnInventoryInitialized()
 {
 	bInventoryInitialized = true;
 	BP_OnInventoryInitialized();
+
+	if (bDestroyOnEmpty && Execute_GetItem(this) == nullptr) Destroy();
 }
 
 void AXIUInventoryActor::OnInventoryChanged()
@@ -69,7 +71,7 @@ void AXIUInventoryActor::OnInventoryChanged()
 	
 	if (bInventoryInitialized)
 	{
-		if (Execute_GetItem(this) == nullptr) Destroy();
+		if (bDestroyOnEmpty && Execute_GetItem(this) == nullptr) Destroy();
 	}
 }
 

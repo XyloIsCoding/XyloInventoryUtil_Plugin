@@ -23,7 +23,7 @@ struct FXIUItemDefault
 /**
  * if IsEmpty() returns false, do not use this item. consider it as nullptr.
  */ 
-UCLASS(Blueprintable, BlueprintType)
+UCLASS(Blueprintable, BlueprintType, Abstract)
 class XYLOINVENTORYUTIL_API UXIUItem : public UObject
 {
 	GENERATED_BODY()
@@ -37,19 +37,14 @@ public:
 private:
 	UPROPERTY(EditAnywhere, Category = "Item")
 	FString ItemName;
-	UPROPERTY(EditAnywhere, Replicated, Category = "Item")
-	int Count;
+	
 	UPROPERTY(EditAnywhere, Replicated, Category = "Item")
 	int MaxCount;
-
-private:
-	UPROPERTY(EditAnywhere, Category = "Appearance")
-	UStaticMesh* ItemMesh;
-public:
-	UFUNCTION(BlueprintCallable, Category = "Appearance")
-	UStaticMesh* GetItemMesh() const { return ItemMesh; }
+	UPROPERTY(Replicated)
+	int Count;
 
 public:
+	UFUNCTION(BlueprintCallable)
 	FString GetItemName() const;
 	
 	/** @return item count */

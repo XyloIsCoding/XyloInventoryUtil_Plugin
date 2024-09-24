@@ -11,7 +11,6 @@ UXIUItem::UXIUItem(const FObjectInitializer& ObjectInitializer)
 {
 	Count = 0;
 	MaxCount = 1;
-	ItemMesh = nullptr;
 }
 
 void UXIUItem::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

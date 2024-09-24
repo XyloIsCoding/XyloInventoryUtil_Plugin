@@ -34,7 +34,7 @@ protected:
 	 */
 
 public:
-	virtual UXIUItem* GetItem_Implementation() override { return Item; }
+	virtual UXIUItem* GetItem_Implementation() override;
 	virtual bool TryPickUp_Implementation(UXIUInventoryComponent* OtherInventory) override;
 	
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
