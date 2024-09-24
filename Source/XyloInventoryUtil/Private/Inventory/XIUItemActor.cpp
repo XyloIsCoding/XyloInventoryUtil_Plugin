@@ -47,11 +47,7 @@ bool AXIUItemActor::TryPickUp_Implementation(UXIUInventoryComponent* OtherInvent
 		OtherInventory->AddItem(GotItem);
 
 		// no item count left
-		if (GotItem->IsEmpty())
-		{
-			Destroy();
-		}
-		
+		if (GotItem->IsEmpty()) Destroy();
 		return true;
 	}
 	
@@ -84,5 +80,8 @@ void AXIUItemActor::SetItem(UXIUItem* NewItem)
 void AXIUItemActor::ItemSet()
 {
 	BP_ItemSet();
+
+	// no item
+	if (!Execute_GetItem(this)) Destroy();
 }
 
