@@ -34,7 +34,7 @@ void AXIUItemActor::BeginPlay()
 
 UXIUItem* AXIUItemActor::GetItem_Implementation()
 {
-	if (!Item->IsEmpty()) return Item;
+	if (Item && !Item->IsEmpty()) return Item;
 	return nullptr;
 }
 
