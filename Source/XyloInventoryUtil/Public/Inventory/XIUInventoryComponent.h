@@ -129,6 +129,17 @@ public:
 	bool IsLocked() const { return bLocked; }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+/* Generic */
+
+public:
+	bool CanInsertItem(const TObjectPtr<UXIUItem> TestItem) const;
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+
+	
+	
 };
 
 
@@ -337,6 +348,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category= "Inventory")
 	UXIUItem* GetFirstItem();
 
+	/** Check if you can insert any count of this item in inventory */
+	bool CanInsertItem(UXIUItem* Item) const;
+	
 	/** Call this function if you want to notify item count change
 	 * (useful if we do stuff like SecondInventory->AddItem(FirstInventory->GetFirstItem())
 	 * which modifies the count of the item got with GetFirstItem)*/

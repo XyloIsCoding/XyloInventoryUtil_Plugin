@@ -4,11 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "XIUItem.h"
+#include "XIUPickUpInterface.h"
 #include "GameFramework/Actor.h"
 #include "XIUItemActor.generated.h"
 
 UCLASS()
-class XYLOINVENTORYUTIL_API AXIUItemActor : public AActor
+class XYLOINVENTORYUTIL_API AXIUItemActor : public AActor, public IXIUPickUpInterface
 {
 	GENERATED_BODY()
 	
@@ -24,6 +25,17 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	/*
+	 * IXIUPickUpInterface Interface
+	 */
+
+public:
+	virtual UXIUItem* GetItem_Implementation() override { return Item; }
+	virtual bool TryPickUp_Implementation(UXIUInventoryComponent* OtherInventory) override;
 	
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

@@ -3,6 +3,7 @@
 
 #include "Inventory/XIUItemActor.h"
 
+#include "Inventory/XIUInventoryComponent.h"
 #include "Inventory/XIUInventoryFunctionLibrary.h"
 
 AXIUItemActor::AXIUItemActor()
@@ -23,6 +24,34 @@ void AXIUItemActor::BeginPlay()
 	Super::BeginPlay();
 
 	SetItemWithDefault(DefaultItem);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/*
+ * IXIUPickUpInterface Interface
+ */
+
+bool AXIUItemActor::TryPickUp_Implementation(UXIUInventoryComponent* OtherInventory)
+{
+	if (!OtherInventory) return false;
+	
+	if (UXIUItem* Item = Execute_GetItem(this))
+	{
+		OtherInventory->AddItem(Item);
+
+		// no item count left
+		if (Item->IsEmpty())
+		{
+			Destroy();
+		}
+		
+		return true;
+	}
+	
+	// no item
+	Destroy();
+	return false;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

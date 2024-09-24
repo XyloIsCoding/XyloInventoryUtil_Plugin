@@ -50,6 +50,11 @@ bool UXIUItem::IsEmpty() const
 	return Count == 0;
 }
 
+bool UXIUItem::IsFull() const
+{
+	return Count == MaxCount;
+}
+
 bool UXIUItem::CanStack(UXIUItem* Item)
 {
 	if (!Item->IsA(GetClass())) return false;

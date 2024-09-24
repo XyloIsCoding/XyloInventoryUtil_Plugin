@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "XIUInventoryInterface.h"
+#include "XIUPickUpInterface.h"
 #include "GameFramework/Actor.h"
 #include "XIUInventoryActor.generated.h"
 
@@ -12,7 +13,7 @@ class UXIUInventoryComponent;
 struct FXIUItemDefault;
 
 UCLASS()
-class XYLOINVENTORYUTIL_API AXIUInventoryActor : public AActor, public IXIUInventoryInterface
+class XYLOINVENTORYUTIL_API AXIUInventoryActor : public AActor, public IXIUInventoryInterface, public IXIUPickUpInterface
 {
 	GENERATED_BODY()
 	
@@ -31,6 +32,16 @@ protected:
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	/*
+	 * IXIUPickUpInterface Interface
+	 */
+
+public:
+	virtual UXIUItem* GetItem_Implementation() override;
+	virtual bool TryPickUp_Implementation(UXIUInventoryComponent* OtherInventory) override;
+	
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	/*
 	 * IXIUInventoryInterface Interface
 	 */
 
@@ -41,6 +52,8 @@ private:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess))
 	UXIUInventoryComponent* InventoryComponent;
 
+private:
+	bool bInventoryInitialized = false;
 protected:
 	UFUNCTION()
 	virtual void OnInventoryInitialized();

@@ -65,6 +65,8 @@ public:
 	UFUNCTION(BlueprintCallable)
 	bool IsEmpty() const;
 	UFUNCTION(BlueprintCallable)
+	bool IsFull() const;
+	UFUNCTION(BlueprintCallable)
 	virtual bool CanStack(UXIUItem* Item);
 	UFUNCTION(BlueprintCallable)
 	virtual UXIUItem* Duplicate(UObject* Outer);

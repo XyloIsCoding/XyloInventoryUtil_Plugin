@@ -94,9 +94,18 @@ void FXIUInventorySlot::SetLocked(bool NewLock)
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 
+/*--------------------------------------------------------------------------------------------------------------------*/
+/* Generic */
 
+bool FXIUInventorySlot::CanInsertItem(const TObjectPtr<UXIUItem> TestItem) const
+{
+	if (IsLocked()) return false;
+	if (IsEmpty() && MatchesFilter(TestItem)) return true;
+	if (!Item->IsFull() && Item->CanStack(TestItem)) return true;
+	return false;
+}
 
-
+/*--------------------------------------------------------------------------------------------------------------------*/
 
 
 
@@ -522,6 +531,15 @@ UXIUItem* UXIUInventoryComponent::GetFirstItem()
 		}
 	}
 	return nullptr;
+}
+
+bool UXIUInventoryComponent::CanInsertItem(UXIUItem* Item) const
+{
+	for (const FXIUInventorySlot& Slot : Inventory.GetInventory())
+	{
+		if (Slot.CanInsertItem(Item)) return true;
+	}
+	return false;
 }
 
 void UXIUInventoryComponent::ManuallyChangedInventory()
