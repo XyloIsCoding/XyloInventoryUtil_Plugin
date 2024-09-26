@@ -135,7 +135,7 @@ void FXIUInventoryList::PreReplicatedRemove(const TArrayView<int32> RemovedIndic
 		int OldCount = Slot.GetItem() ? Slot.GetItem()->GetCount() : 0;
 		BroadcastChangeMessage(Slot, /*OldCount=*/ OldCount, /*NewCount=*/ 0, true);
 
-		if (Slot.Item) OwnerComponent->UnBindItemCountChangedDelegate(Slot.Item);
+		if (Slot.GetItem()) OwnerComponent->UnBindItemCountChangedDelegate(Slot.GetItem());
 		Slot.LastObservedCount = 0;
 		Slot.LastObservedItem = nullptr;
 	}
@@ -150,7 +150,7 @@ void FXIUInventoryList::PostReplicatedAdd(const TArrayView<int32> AddedIndices, 
 		int NewCount = Slot.GetItem() ? Slot.GetItem()->GetCount() : 0;
 		BroadcastChangeMessage(Slot, /*OldCount=*/ 0, /*NewCount=*/ NewCount, true);
 
-		if (Slot.Item) OwnerComponent->BindItemCountChangedDelegate(Slot.Item);
+		if (Slot.GetItemSafe()) OwnerComponent->BindItemCountChangedDelegate(Slot.GetItemSafe());
 		Slot.LastObservedCount = NewCount;
 		Slot.LastObservedItem = Slot.GetItemSafe();
 	}
@@ -171,7 +171,7 @@ void FXIUInventoryList::PostReplicatedChange(const TArrayView<int32> ChangedIndi
 		if (bItemChanged)
 		{
 			if (Slot.LastObservedItem) OwnerComponent->UnBindItemCountChangedDelegate(Slot.LastObservedItem.Get());
-			if (Slot.Item) OwnerComponent->BindItemCountChangedDelegate(Slot.Item);
+			if (Slot.GetItemSafe()) OwnerComponent->BindItemCountChangedDelegate(Slot.GetItemSafe());
 		}
 		Slot.LastObservedCount = NewCount;
 		Slot.LastObservedItem = Slot.GetItemSafe();
@@ -222,7 +222,7 @@ void FXIUInventoryList::InitInventory(int Size)
 		NewSlot.Index = i;
 		MarkItemDirty(NewSlot);
 		BroadcastChangeMessage(NewSlot, 0, 0, true); // Broadcast on server
-		if (NewSlot.Item) OwnerComponent->BindItemCountChangedDelegate(NewSlot.Item); // Bind on server
+		if (NewSlot.GetItemSafe()) OwnerComponent->BindItemCountChangedDelegate(NewSlot.GetItemSafe()); // Bind on server
 	}
 }
 
@@ -264,6 +264,7 @@ int FXIUInventoryList::AddItemDefault(FXIUItemDefault ItemDefault, TArray<TObjec
 					MarkItemDirty(Slot);
 					BroadcastChangeMessage(Slot, 0, NewItem->GetCount(), true); // Broadcast on server
 					OwnerComponent->BindItemCountChangedDelegate(NewItem); // Bind on server
+					if (OldItem) OwnerComponent->UnBindItemCountChangedDelegate(OldItem); // UnBind on server
 					
 					AddedItems.Add(NewItem);
 					RemainingCount -= NewItem->GetCount();
@@ -316,6 +317,7 @@ int FXIUInventoryList::AddItem(TObjectPtr<UXIUItem> Item, bool bDuplicate, TObje
 					MarkItemDirty(Slot);
 					BroadcastChangeMessage(Slot, 0, NewItem->GetCount(), true); // Broadcast on server
 					OwnerComponent->BindItemCountChangedDelegate(NewItem); // Bind on server
+					if (OldItem) OwnerComponent->UnBindItemCountChangedDelegate(OldItem); // UnBind on server
 					
 					AddedItem = NewItem;
 					if (bDuplicate) Item->SetCount(0);
@@ -341,6 +343,7 @@ bool FXIUInventoryList::SetItemAtSlot(int SlotIndex, TObjectPtr<UXIUItem> Item, 
 			MarkItemDirty(Slot);
 			BroadcastChangeMessage(Slot, 0, NewItem->GetCount(), true); // Broadcast on server
 			OwnerComponent->BindItemCountChangedDelegate(NewItem); // Bind on server
+			if (OldItem) OwnerComponent->UnBindItemCountChangedDelegate(OldItem); // UnBind on server
 			
 			AddedItem = NewItem;
 			return true;
@@ -371,9 +374,8 @@ TObjectPtr<UXIUItem> FXIUInventoryList::RemoveItemAtSlot(int SlotIndex)
 	Slot.Clear(OldItem);
 
 	MarkItemDirty(Slot);
-	int OldCount = OldItem ? OldItem->GetCount() : 0;
-	BroadcastChangeMessage(Slot, OldCount, 0, true); // Broadcast on server
-	OwnerComponent->UnBindItemCountChangedDelegate(OldItem); // UnBind on server
+	BroadcastChangeMessage(Slot, OldItem ? OldItem->GetCount() : 0, 0, true); // Broadcast on server
+	if (OldItem) OwnerComponent->UnBindItemCountChangedDelegate(OldItem); // UnBind on server
 	
 	return OldItem;
 }
