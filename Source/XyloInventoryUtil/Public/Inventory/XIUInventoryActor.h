@@ -58,7 +58,7 @@ protected:
 	UFUNCTION()
 	virtual void OnInventoryInitialized();
 	UFUNCTION()
-	virtual void OnInventoryChanged();
+	virtual void OnInventoryChanged(const FXIUInventorySlotChangeMessage& Change);
 
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "OnInventoryInitialized"))
 	void BP_OnInventoryInitialized();

@@ -2,14 +2,12 @@
 
 
 #include "Inventory/XIUItem.h"
-
 #include "Net/UnrealNetwork.h"
 
 
 UXIUItem::UXIUItem(const FObjectInitializer& ObjectInitializer)
 	:Super(ObjectInitializer)
 {
-	Count = 0;
 	MaxCount = 1;
 }
 
@@ -19,6 +17,12 @@ void UXIUItem::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetime
 
 	DOREPLIFETIME(ThisClass, Count);
 	DOREPLIFETIME(ThisClass, MaxCount);
+}
+
+void UXIUItem::OnRep_Count(int OldCount)
+{
+	if (OldCount == -1) return;
+	ItemCountChangedDelegate.Broadcast(FXIUItemCountChangeMessage(this, Count, OldCount));
 }
 
 FString UXIUItem::GetItemName() const
@@ -33,14 +37,18 @@ int UXIUItem::GetCount() const
 
 void UXIUItem::SetCount(int NewCount)
 {
+	const int OldCount = Count;
 	Count = FMath::Clamp(NewCount, 0, MaxCount);
-	UE_LOG(LogTemp, Warning, TEXT("Set Count %i (requested %i. MaxCount %i)"), Count, NewCount, MaxCount)
+	ItemCountChangedDelegate.Broadcast(FXIUItemCountChangeMessage(this, Count, OldCount));
+
+	//UE_LOG(LogTemp, Warning, TEXT("Set Count %i (requested %i. MaxCount %i)"), Count, NewCount, MaxCount)
 }
 
 int UXIUItem::ModifyCount(const int AddCount)
 {
 	const int OldCount = Count;
 	Count = FMath::Clamp(Count + AddCount, 0, MaxCount);
+	ItemCountChangedDelegate.Broadcast(FXIUItemCountChangeMessage(this, Count, OldCount));
 	return Count - OldCount;
 }
 

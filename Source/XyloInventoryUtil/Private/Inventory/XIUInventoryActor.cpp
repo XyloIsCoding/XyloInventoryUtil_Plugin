@@ -12,8 +12,8 @@ AXIUInventoryActor::AXIUInventoryActor()
 	PrimaryActorTick.bCanEverTick = false;
 	
 	InventoryComponent = CreateDefaultSubobject<UXIUInventoryComponent>(TEXT("InventoryComponent"));
-	InventoryComponent->InventoryInitializedServerDelegate.AddDynamic(this, &AXIUInventoryActor::OnInventoryInitialized);
-	InventoryComponent->InventoryChangedServerDelegate.AddDynamic(this, &AXIUInventoryActor::OnInventoryChanged);
+	InventoryComponent->InventoryInitializedDelegate.AddDynamic(this, &AXIUInventoryActor::OnInventoryInitialized);
+	InventoryComponent->InventoryChangedDelegate.AddDynamic(this, &AXIUInventoryActor::OnInventoryChanged);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -45,7 +45,6 @@ bool AXIUInventoryActor::TryPickUp_Implementation(UXIUInventoryComponent* OtherI
 	if (UXIUItem* GotItem = Execute_GetItem(this))
 	{
 		OtherInventory->AddItem(GotItem);
-		InventoryComponent->ManuallyChangedInventory();
 		return true;
 	}
 	return false;
@@ -65,7 +64,7 @@ void AXIUInventoryActor::OnInventoryInitialized()
 	if (bDestroyOnEmpty && Execute_GetItem(this) == nullptr) Destroy();
 }
 
-void AXIUInventoryActor::OnInventoryChanged()
+void AXIUInventoryActor::OnInventoryChanged(const FXIUInventorySlotChangeMessage& Change)
 {
 	BP_OnInventoryChanged();
 	

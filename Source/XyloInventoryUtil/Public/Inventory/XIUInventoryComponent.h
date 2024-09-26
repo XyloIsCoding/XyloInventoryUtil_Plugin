@@ -25,6 +25,9 @@ struct FXIUInventorySlotChangeMessage
 	int32 Index = 0;
 
 	UPROPERTY(BlueprintReadOnly, Category = Inventory)
+	bool bItemChanged = false;
+	
+	UPROPERTY(BlueprintReadOnly, Category = Inventory)
 	TObjectPtr<UXIUItem> Item = nullptr;
 	
 	UPROPERTY(BlueprintReadOnly, Category=Inventory)
@@ -34,13 +37,13 @@ struct FXIUInventorySlotChangeMessage
 	int32 Delta = 0;
 
 	UPROPERTY(BlueprintReadOnly, Category = Inventory)
-	TSubclassOf<UXIUItem> Filter;
+	TSubclassOf<UXIUItem> Filter = nullptr;
 
 	UPROPERTY(BlueprintReadOnly, Category=Inventory)
-	bool bLocked;
+	bool bLocked = false;
 };
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FXIUInventorySlotReplicatedSignature, const FXIUInventorySlotChangeMessage&, Change);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FXIUInventoryChangedSignature, const FXIUInventorySlotChangeMessage&, Change);
 
 
 
@@ -97,8 +100,13 @@ public:
 	/** does NOT check for IsEmpty on the item
 	 * @return item of this slot. */
 	TObjectPtr<UXIUItem> GetItem() const;
+	/** DOES check for IsEmpty on the item
+	 * @return item of this slot. */
+	TObjectPtr<UXIUItem> GetItemSafe() const;
 	bool IsEmpty() const;
 
+	UPROPERTY(NotReplicated)
+	TSoftObjectPtr<UXIUItem> LastObservedItem = nullptr;
 	UPROPERTY(NotReplicated)
 	int32 LastObservedCount = INDEX_NONE;
 	
@@ -180,8 +188,11 @@ private:
 	/* FFastArraySerializer contract */
 	
 public:
+	/* Calls BroadcastChangeMessage, and calls UnBindItemCountChangedDelegate on the items of the removed slots */
 	void PreReplicatedRemove(const TArrayView<int32> RemovedIndices, int32 FinalSize);
+	/* Calls BroadcastChangeMessage, and calls BindItemCountChangedDelegate on the items of the added slots */
 	void PostReplicatedAdd(const TArrayView<int32> AddedIndices, int32 FinalSize);
+	/* Calls BroadcastChangeMessage, and, if item changed, calls BindItemCountChangedDelegate on the new items, and UnBind on the old one */
 	void PostReplicatedChange(const TArrayView<int32> ChangedIndices, int32 FinalSize);
 
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
@@ -195,8 +206,9 @@ public:
 /*--------------------------------------------------------------------------------------------------------------------*/
 	/* Helpers */
 	
+public:
+	void BroadcastChangeMessage(const FXIUInventorySlot& Entry, const int32 OldCount, const int32 NewCount, const bool bItemChanged) const;
 private:
-	void BroadcastChangeMessage(const FXIUInventorySlot& Entry, const int32 OldCount, const int32 NewCount) const;
 	bool CanManipulateInventory() const;
 
 public:
@@ -256,8 +268,7 @@ struct TStructOpsTypeTraits<FXIUInventoryList> : public TStructOpsTypeTraitsBase
 };
 
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FXIUInventoryInitializedServerSignature);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FXIUInventoryChangedServerSignature);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FXIUInventoryInitializedSignature);
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -300,16 +311,33 @@ public:
 	 * Inventory
 	 */
 
+/*--------------------------------------------------------------------------------------------------------------------*/
+	/* Delegates */
+	
+private:
+	UPROPERTY(ReplicatedUsing = OnRep_InventoryInitialized)
+	bool bInventoryInitialized = false;
+	UFUNCTION()
+	void OnRep_InventoryInitialized();
 public:
 	UPROPERTY(BlueprintAssignable, Category = "Inventory")
-	FXIUInventorySlotReplicatedSignature InventorySlotReplicatedDelegate;
+	FXIUInventoryInitializedSignature InventoryInitializedDelegate;
 
+public:
 	UPROPERTY(BlueprintAssignable, Category = "Inventory")
-	FXIUInventoryInitializedServerSignature InventoryInitializedServerDelegate;
+	FXIUInventoryChangedSignature InventoryChangedDelegate;
+private:
+	/* Called on client and server when delegate trigger
+	 * Calls Inventory.BroadcastChangeMessage
+	 * Manages the unbinding in case the count reaches zero */
+	UFUNCTION()
+	void OnItemCountChanged(const FXIUItemCountChangeMessage& Change);
+public:
+	void BindItemCountChangedDelegate(const TObjectPtr<UXIUItem> InItem);
+	void UnBindItemCountChangedDelegate(const TObjectPtr<UXIUItem> InItem);
 
-	/** Broadcast when any item change happens (item count changes are notified only if changed by this component) */
-	UPROPERTY(BlueprintAssignable, Category = "Inventory")
-	FXIUInventoryChangedServerSignature InventoryChangedServerDelegate;
+/*--------------------------------------------------------------------------------------------------------------------*/
+
 	
 private:
  	UPROPERTY(Replicated)
@@ -350,12 +378,6 @@ public:
 
 	/** Check if you can insert any count of this item in inventory */
 	bool CanInsertItem(UXIUItem* Item) const;
-	
-	/** Call this function if you want to notify item count change
-	 * (useful if we do stuff like SecondInventory->AddItem(FirstInventory->GetFirstItem())
-	 * which modifies the count of the item got with GetFirstItem)*/
-	UFUNCTION(BlueprintCallable, Category= "Inventory")
-	void ManuallyChangedInventory();
 
 	
 	
