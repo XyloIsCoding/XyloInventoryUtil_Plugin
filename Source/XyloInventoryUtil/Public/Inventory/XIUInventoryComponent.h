@@ -362,19 +362,24 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Inventory")
 	int InventorySize;
 private:
+	/** function to set up the slots. should not be used to add items, since it is called before AddDefaultItems
+	 * Override in child class to implement. */
+	virtual void ApplySettingsToSlots();
+
+private:
 	UPROPERTY(EditAnywhere)
 	TArray<FXIUItemDefault> DefaultItems;
-
-public:
-	UFUNCTION(BlueprintCallable, Category= "Inventory")
-	void PrintItems();
-
 public:
 	UFUNCTION(BlueprintCallable, Category= "Inventory")
 	void AddDefaultItems();
 	UFUNCTION(Server, Reliable, Category= "Inventory")
 	void ServerAddDefaultItems();
 
+	
+public:
+	UFUNCTION(BlueprintCallable, Category= "Inventory")
+	void PrintItems();
+	
 	UFUNCTION(BlueprintCallable, Category= "Inventory")
 	void AddItemDefault(const FXIUItemDefault ItemDefault);
 
@@ -414,7 +419,7 @@ public:
 	virtual bool UnregisterReplicatedObject(UPARAM(DisplayName = "Replicated UObject") UObject* ObjectToUnregister);
 
 
-protected:
+private:
 	//All the currently replicated objects
 	UPROPERTY()
 	TArray<UObject*> ReplicatedObjects;

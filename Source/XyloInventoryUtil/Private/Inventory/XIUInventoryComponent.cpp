@@ -446,6 +446,7 @@ void UXIUInventoryComponent::BeginPlay()
 	if (GetOwner()->HasAuthority())
 	{
 		Inventory.InitInventory(FMath::Max(InventorySize, DefaultItems.Num()));
+		ApplySettingsToSlots();
 		AddDefaultItems();
 
 		bInventoryInitialized = true;
@@ -480,7 +481,7 @@ void UXIUInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 
 void UXIUInventoryComponent::OnRep_InventoryInitialized()
 {
-	InventoryInitializedDelegate.Broadcast();
+	if (bInventoryInitialized) InventoryInitializedDelegate.Broadcast();
 }
 
 void UXIUInventoryComponent::OnItemCountChanged(const FXIUItemCountChangeMessage& Change)
@@ -515,19 +516,9 @@ void UXIUInventoryComponent::UnBindItemCountChangedDelegate(const TObjectPtr<UXI
 /*--------------------------------------------------------------------------------------------------------------------*/
 
 
-void UXIUInventoryComponent::PrintItems()
+void UXIUInventoryComponent::ApplySettingsToSlots()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, FString::Printf(TEXT("Inventory Size: %i"), Inventory.GetSize()));
-	for (const FXIUInventorySlot& Slot : Inventory.GetInventory())
-	{
-		if (!Slot.IsEmpty())
-		{
-			if (TObjectPtr<UXIUItem> Item = Slot.GetItem())
-			{
-				GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, FString::Printf(TEXT("[SLOT %i] Item: %s  ;  Count %i"), Slot.GetIndex(), *Item->GetItemName(), Item->GetCount()));
-			}
-		}
-	}
+	
 }
 
 void UXIUInventoryComponent::AddDefaultItems()
@@ -544,6 +535,21 @@ void UXIUInventoryComponent::ServerAddDefaultItems_Implementation()
     		AddItemDefault(DefaultItem);
     	}
     }
+}
+
+void UXIUInventoryComponent::PrintItems()
+{
+	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, FString::Printf(TEXT("Inventory Size: %i"), Inventory.GetSize()));
+	for (const FXIUInventorySlot& Slot : Inventory.GetInventory())
+	{
+		if (!Slot.IsEmpty())
+		{
+			if (TObjectPtr<UXIUItem> Item = Slot.GetItem())
+			{
+				GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, FString::Printf(TEXT("[SLOT %i] Item: %s  ;  Count %i"), Slot.GetIndex(), *Item->GetItemName(), Item->GetCount()));
+			}
+		}
+	}
 }
 
 void UXIUInventoryComponent::AddItemDefault(const FXIUItemDefault ItemDefault)
