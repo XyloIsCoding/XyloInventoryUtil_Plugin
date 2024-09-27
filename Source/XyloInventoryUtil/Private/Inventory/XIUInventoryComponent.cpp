@@ -422,12 +422,16 @@ int FXIUInventoryList::ConsumeItemByClass(const TSubclassOf<UXIUItem> ItemClass,
 /*--------------------------------------------------------------------------------------------------------------------*/
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+/*
+ * UXIUInventoryComponent
+ */
+
 
 UXIUInventoryComponent::UXIUInventoryComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, Inventory(this)
 {
-	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bCanEverTick = false;
 	SetIsReplicatedByDefault(true);
 	bReplicateUsingRegisteredSubObjectList = true;
 }
@@ -452,11 +456,6 @@ void UXIUInventoryComponent::BeginPlay()
 		bInventoryInitialized = true;
 		InventoryInitializedDelegate.Broadcast();
 	}
-}
-
-void UXIUInventoryComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 }
 
 void UXIUInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

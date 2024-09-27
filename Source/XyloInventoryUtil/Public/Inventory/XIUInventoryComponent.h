@@ -275,9 +275,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FXIUInventoryInitializedSignature);
 /*--------------------------------------------------------------------------------------------------------------------*/
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
-
-
+	/*
+	 * UXIUInventoryComponent
+	 */
 
 
 /**
@@ -302,7 +302,6 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
