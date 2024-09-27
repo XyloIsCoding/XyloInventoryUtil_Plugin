@@ -222,7 +222,7 @@ void FXIUInventoryList::InitInventory(int Size)
 		NewSlot.Index = i;
 		MarkItemDirty(NewSlot);
 		BroadcastChangeMessage(NewSlot, 0, 0, true); // Broadcast on server
-		if (NewSlot.GetItemSafe()) OwnerComponent->BindItemCountChangedDelegate(NewSlot.GetItemSafe()); // Bind on server
+		// No need to bind item count delegate cause item is not assigned in slot yet
 	}
 }
 
