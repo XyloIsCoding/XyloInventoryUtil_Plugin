@@ -20,6 +20,7 @@ void UXIUItem::DestroyObject()
 {
 	if (IsValid(this))
 	{
+		SetCount(0); // setting count to zero to signal that we are destroying the item
 		MarkAsGarbage();
 		OnDestroyed();
 	}
@@ -93,9 +94,10 @@ void UXIUItem::OnCreatedFromReplication()
 
 void UXIUItem::OnDestroyedFromReplication()
 {
-	SetCount(0);
+	const int OldCount = GetCount();
+	SetCount(0); // setting count to zero locally to signal that we are destroying the item (might have not replicated yet)
+	ItemCountChangedDelegate.Broadcast(FXIUItemCountChangeMessage(this, OldCount));
 }
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -105,8 +107,10 @@ void UXIUItem::OnDestroyedFromReplication()
 
 void UXIUItem::OnRep_Count(int OldCount)
 {
-	if (OldCount == -1) return;
-	ItemCountChangedDelegate.Broadcast(FXIUItemCountChangeMessage(this, Count, OldCount));
+	if (OldCount != -1) // avoid broadcast on first replication (which does not count as real change)
+	{
+		ItemCountChangedDelegate.Broadcast(FXIUItemCountChangeMessage(this, OldCount));
+	}
 }
 
 FString UXIUItem::GetItemName() const
@@ -123,7 +127,10 @@ void UXIUItem::SetCount(int NewCount)
 {
 	const int OldCount = Count;
 	Count = FMath::Clamp(NewCount, 0, MaxCount);
-	ItemCountChangedDelegate.Broadcast(FXIUItemCountChangeMessage(this, Count, OldCount));
+	if (GetOwningActor()->HasAuthority())
+	{
+		ItemCountChangedDelegate.Broadcast(FXIUItemCountChangeMessage(this, OldCount));
+	}
 
 	//UE_LOG(LogTemp, Warning, TEXT("Set Count %i (requested %i. MaxCount %i)"), Count, NewCount, MaxCount)
 }
@@ -132,7 +139,10 @@ int UXIUItem::ModifyCount(const int AddCount)
 {
 	const int OldCount = Count;
 	Count = FMath::Clamp(Count + AddCount, 0, MaxCount);
-	ItemCountChangedDelegate.Broadcast(FXIUItemCountChangeMessage(this, Count, OldCount));
+	if (GetOwningActor()->HasAuthority())
+	{
+		ItemCountChangedDelegate.Broadcast(FXIUItemCountChangeMessage(this, OldCount));
+	}
 	return Count - OldCount;
 }
 

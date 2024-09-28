@@ -505,8 +505,8 @@ void UXIUInventoryComponent::OnItemCountChanged(const FXIUItemCountChangeMessage
 		}
 	}
 
-	bool bItemChanged = Change.NewCount == 0;
-	Inventory.RegisterSlotChange(ItemSlot, Change.OldCount, Change.NewCount, bItemChanged, bItemChanged? Change.Item : nullptr);
+	bool bItemChanged = Change.Item->GetCount() == 0;
+	Inventory.RegisterSlotChange(ItemSlot, Change.OldCount, Change.Item->GetCount(), bItemChanged, bItemChanged? Change.Item : nullptr);
 }
 
 void UXIUInventoryComponent::BindItemCountChangedDelegate(const TObjectPtr<UXIUItem> InItem)

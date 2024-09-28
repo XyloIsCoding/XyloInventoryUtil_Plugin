@@ -19,20 +19,15 @@ struct FXIUItemCountChangeMessage
 		
 	}
 
-	FXIUItemCountChangeMessage(TObjectPtr<UXIUItem> Item, int32 NewCount, int32 OldCount)
+	FXIUItemCountChangeMessage(TObjectPtr<UXIUItem> Item, int32 OldCount)
 		:  Item(Item),
-		   NewCount(NewCount),
 		   OldCount(OldCount)
 	{
 		
 	}
-
 	
 	UPROPERTY(BlueprintReadOnly, Category=Item)
 	TObjectPtr<UXIUItem> Item = nullptr;
-	
-	UPROPERTY(BlueprintReadOnly, Category=Item)
-	int32 NewCount = 0;
 
 	UPROPERTY(BlueprintReadOnly, Category=Item)
 	int32 OldCount = 0;

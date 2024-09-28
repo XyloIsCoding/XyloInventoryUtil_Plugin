@@ -335,22 +335,16 @@ public:
 public:
 	/** PROBABLY SPAGHETTI CODE WARNING!!!
 	 * to make this delegate fire both on client and server, some trickery has been used.
-	 * SERVER SIDE: every time Slot.SetItem or Slot.Clear is used, I call the following functions:
-	 *				- MarkDirty(Slot);
-	 *				- BroadcastChangeMessage(...);
-	 *				- BindItemCountChangedDelegate(NewItem); // only for SetItem
-	 *				- UnBindItemCountChangedDelegate(OldItem);
-	 *				I also call the first three for each slot I add in InitInventory
+	 * SERVER SIDE: every time Slot.SetItem or Slot.Clear is used, or a slot is added/removed,
+	 *				I call Inventory.RegisterSlotChange(...)
 	 * CLIENT SIDE: using the three functions provided by FFastArraySerializer to track replication changes i call
-	 *				- BroadcastChangeMessage(...);
-	 *				- BindItemCountChangedDelegate(Slot.GetItemSafe()); // in Add, and in Change (but only if item changed)
-	 *				- UnBindItemCountChangedDelegate(OldItem); // in Remove, and in Change (but only if item changed)
-	 *				note that for UnBind we use Slot.GetItem() in Remove and Slot.LastObservedItem.Get() in Change, this is
+	 *				Inventory.RegisterSlotChange(...).
+	 *				note that as OldItem we use Slot.GetItem() in Remove and Slot.LastObservedItem.Get() in Change, this is
 	 *				because we always want to unbind, even if count is zero (and GetItemSafe would not return empty items)
-	 * ITEM COUNT: to trigger on item count, we bind OnItemCountChanged to Item->ItemCountChangedDelegate (Happens in
+	 * ITEM COUNT: to trigger on item count change, we bind OnItemCountChanged to Item->ItemCountChangedDelegate (Happens in
 	 *			   Bind and Unbind functions mentioned above). The bound function is responsible for calling
-	 *			   BroadcastChangeMessage(...) and for calling UnBind when necessary.
-	 *			   Item count is set to zero on client OnDestroyedFromReplication
+	 *			   Inventory.RegisterSlotChange(...).
+	 *			   Item count is set to zero on client inside OnDestroyedFromReplication, and on server in DestroyObject
 	 */
 	UPROPERTY(BlueprintAssignable, Category = "Inventory")
 	FXIUInventoryChangedSignature InventoryChangedDelegate;
