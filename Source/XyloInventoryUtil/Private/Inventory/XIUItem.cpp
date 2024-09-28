@@ -111,9 +111,18 @@ void UXIUItem::OnDestroyedFromReplication()
 
 void UXIUItem::SetItemDefinition(UXIUItemDefinition* InItemDefinition)
 {
+	checkf(InItemDefinition, TEXT("Item definition must be valid"))
 	checkf(!bItemInitialized, TEXT("Cannot reassign an item definition"))
 
 	ItemDefinition = InItemDefinition;
+	for (UXIUItemFragment* Fragment : ItemDefinition->Fragments)
+	{
+		if (Fragment != nullptr)
+		{
+			Fragment->OnInstanceCreated(this);
+		}
+	}
+	
 	bItemInitialized = true;
 }
 

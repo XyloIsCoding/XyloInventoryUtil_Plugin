@@ -65,6 +65,7 @@ struct FXIUItemDefault
 
 
 /**
+ * only use UXIUInventoryFunctionLibrary::MakeItemFromDefault to create a Item object
  * if IsEmpty() returns false, do not use this item. consider it as nullptr.
  */ 
 UCLASS(Blueprintable, BlueprintType, Abstract)
