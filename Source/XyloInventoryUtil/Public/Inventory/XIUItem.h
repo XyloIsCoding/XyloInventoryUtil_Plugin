@@ -123,7 +123,7 @@ public:
 private:
 	bool bItemInitialized;
 
-public:
+private:
 	UPROPERTY(Replicated)
 	UXIUItemDefinition* ItemDefinition;
 public:

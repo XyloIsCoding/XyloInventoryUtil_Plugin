@@ -230,7 +230,7 @@ int FXIUInventoryList::AddItemDefault(FXIUItemDefault ItemDefault, TArray<TObjec
 	// try to add count to existing items
 	for (FXIUInventorySlot& Slot : Entries)
 	{
-		if (!Slot.IsEmpty() && Slot.GetItem().IsA(ItemDefault.ItemDefinition->ItemClass))
+		if (!Slot.IsEmpty() && Slot.GetItem()->GetItemDefinition() == ItemDefault.ItemDefinition)
 		{
 			RemainingCount -= Slot.GetItem()->ModifyCount(RemainingCount);
 			
@@ -378,14 +378,14 @@ bool FXIUInventoryList::GetItemsByClass(const TSubclassOf<UXIUItem> ItemClass, T
 	return FoundItems.Num() > 0;
 }
 
-int FXIUInventoryList::ConsumeItemByClass(const TSubclassOf<UXIUItem> ItemClass, const int Count)
+int FXIUInventoryList::ConsumeItemByDefinition(const TObjectPtr<UXIUItemDefinition> ItemDefinition, const int Count)
 {
 	int RemainingCount = Count;
 
 	// try to add count to existing items
 	for (FXIUInventorySlot& Slot : Entries)
 	{
-		if (!Slot.IsEmpty() && Slot.GetItem().IsA(ItemClass))
+		if (!Slot.IsEmpty() && Slot.GetItem()->GetItemDefinition() == ItemDefinition)
 		{
 			RemainingCount -= -Slot.GetItem()->ModifyCount(-RemainingCount); // we are removing count, so the function returns a negative number representing the count removed
 			

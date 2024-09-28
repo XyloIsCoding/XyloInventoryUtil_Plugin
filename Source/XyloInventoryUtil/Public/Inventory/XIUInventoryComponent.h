@@ -255,7 +255,7 @@ public:
 	/** @return true if any item was found (Already checks IsEmpty on items) */
 	bool GetItemsByClass(const TSubclassOf<UXIUItem> ItemClass, TArray<TObjectPtr<UXIUItem>>& FoundItems);
 	/** @return Count actually consumed */
-	int ConsumeItemByClass(const TSubclassOf<UXIUItem> ItemClass, const int Count);
+	int ConsumeItemByDefinition(const TObjectPtr<UXIUItemDefinition> ItemDefinition, const int Count);
 	
 /*--------------------------------------------------------------------------------------------------------------------*/
 
