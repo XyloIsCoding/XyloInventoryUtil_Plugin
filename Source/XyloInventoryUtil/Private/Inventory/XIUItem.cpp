@@ -11,6 +11,20 @@ UXIUItem::UXIUItem(const FObjectInitializer& ObjectInitializer)
 	MaxCount = 1;
 }
 
+AActor* UXIUItem::GetOwningActor() const
+{
+	return GetTypedOuter<AActor>();
+}
+
+void UXIUItem::DestroyObject()
+{
+	if (IsValid(this))
+	{
+		MarkAsGarbage();
+		OnDestroyed();
+	}
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /*
@@ -21,8 +35,49 @@ void UXIUItem::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetime
 {
 	UObject::GetLifetimeReplicatedProps(OutLifetimeProps);
 
+	if (const UBlueprintGeneratedClass* BPCClass = Cast<UBlueprintGeneratedClass>(GetClass()))
+	{
+		BPCClass->GetLifetimeBlueprintReplicationList(OutLifetimeProps);
+	}
+
 	DOREPLIFETIME(ThisClass, Count);
 	DOREPLIFETIME(ThisClass, MaxCount);
+}
+
+UWorld* UXIUItem::GetWorld() const
+{
+	if (GetOuter() == nullptr)
+	{
+		return nullptr;
+	}
+		
+	if (Cast<UPackage>(GetOuter()) != nullptr)
+	{
+		return Cast<UWorld>(GetOuter()->GetOuter());
+	}
+		
+	return GetOwningActor()->GetWorld();
+}
+
+int32 UXIUItem::GetFunctionCallspace(UFunction* Function, FFrame* Stack)
+{
+	if (HasAnyFlags(RF_ClassDefaultObject) || !IsSupportedForNetworking())
+	{
+		return GEngine->GetGlobalFunctionCallspace(Function, this, Stack);
+	}
+	
+	return GetOuter()->GetFunctionCallspace(Function, Stack);
+}
+
+bool UXIUItem::CallRemoteFunction(UFunction* Function, void* Parms, FOutParmRec* OutParms, FFrame* Stack)
+{
+	AActor* Owner = GetOwningActor();
+	if (UNetDriver* NetDriver = Owner->GetNetDriver())
+	{
+		NetDriver->ProcessRemoteFunction(Owner, Function, Parms, OutParms, Stack, this);
+		return true;
+	}
+	return false;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -104,3 +159,4 @@ UXIUItem* UXIUItem::Duplicate(UObject* Outer)
 	Item->MaxCount = MaxCount;
 	return Item;
 }
+
