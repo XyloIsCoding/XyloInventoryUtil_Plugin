@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Interfaces/Interface_ActorSubobject.h"
 #include "UObject/Object.h"
 #include "XIUItem.generated.h"
 
@@ -60,16 +61,39 @@ struct FXIUItemDefault
  * if IsEmpty() returns false, do not use this item. consider it as nullptr.
  */ 
 UCLASS(Blueprintable, BlueprintType, Abstract)
-class XYLOINVENTORYUTIL_API UXIUItem : public UObject
+class XYLOINVENTORYUTIL_API UXIUItem : public UObject, public IInterface_ActorSubobject
 {
 	GENERATED_BODY()
 
 public:
 	UXIUItem(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	/*
+	 * UObject Interface
+	 */
+	
+public:
 	virtual bool IsSupportedForNetworking() const override { return true; }
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
+	
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+	/*
+	 * IInterface_ActorSubobject Interface
+	 */
+
+public:
+	virtual void OnCreatedFromReplication() override;
+	virtual void OnDestroyedFromReplication() override;
+	
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	/*
+	 * Item
+	 */
 
 public:
 	UPROPERTY(BlueprintAssignable)

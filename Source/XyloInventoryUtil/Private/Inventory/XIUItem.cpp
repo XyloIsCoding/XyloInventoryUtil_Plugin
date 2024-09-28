@@ -11,6 +11,12 @@ UXIUItem::UXIUItem(const FObjectInitializer& ObjectInitializer)
 	MaxCount = 1;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/*
+ * UObject Interface
+ */
+
 void UXIUItem::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	UObject::GetLifetimeReplicatedProps(OutLifetimeProps);
@@ -18,6 +24,29 @@ void UXIUItem::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetime
 	DOREPLIFETIME(ThisClass, Count);
 	DOREPLIFETIME(ThisClass, MaxCount);
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/*
+ * IInterface_ActorSubobject Interface
+ */
+
+void UXIUItem::OnCreatedFromReplication()
+{
+	
+}
+
+void UXIUItem::OnDestroyedFromReplication()
+{
+	SetCount(0);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/*
+ * Item
+ */
 
 void UXIUItem::OnRep_Count(int OldCount)
 {

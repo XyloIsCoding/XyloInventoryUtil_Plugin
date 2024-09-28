@@ -258,6 +258,16 @@ public:
 	int ConsumeItemByClass(const TSubclassOf<UXIUItem> ItemClass, const int Count);
 	
 /*--------------------------------------------------------------------------------------------------------------------*/
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+	/* Slot Item registration */
+
+public:
+	virtual void RegisterSlotChange(const FXIUInventorySlot& Slot, const int32 OldCount, const int32 NewCount, const bool bItemChanged, const TObjectPtr<UXIUItem> OldItem = nullptr);
+	
+/*--------------------------------------------------------------------------------------------------------------------*/
+	
+
 	
 };
 
@@ -339,7 +349,8 @@ public:
 	 *				because we always want to unbind, even if count is zero (and GetItemSafe would not return empty items)
 	 * ITEM COUNT: to trigger on item count, we bind OnItemCountChanged to Item->ItemCountChangedDelegate (Happens in
 	 *			   Bind and Unbind functions mentioned above). The bound function is responsible for calling
-	 *			   BroadcastChangeMessage(...) and for calling UnBind when necessary.			
+	 *			   BroadcastChangeMessage(...) and for calling UnBind when necessary.
+	 *			   Item count is set to zero on client OnDestroyedFromReplication
 	 */
 	UPROPERTY(BlueprintAssignable, Category = "Inventory")
 	FXIUInventoryChangedSignature InventoryChangedDelegate;

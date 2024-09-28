@@ -12,7 +12,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /*
- * FXIUInventorySlot Interface
+ * FXIUInventorySlot
  */
 
 
@@ -119,7 +119,7 @@ bool FXIUInventorySlot::CanInsertItem(const TObjectPtr<UXIUItem> TestItem) const
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /*
- * FXIUInventory Interface
+ * FXIUInventory
  */
 
 
@@ -133,9 +133,8 @@ void FXIUInventoryList::PreReplicatedRemove(const TArrayView<int32> RemovedIndic
 		FXIUInventorySlot& Slot = Entries[Index];
 		
 		int OldCount = Slot.GetItem() ? Slot.GetItem()->GetCount() : 0;
-		BroadcastChangeMessage(Slot, /*OldCount=*/ OldCount, /*NewCount=*/ 0, true);
-
-		if (Slot.GetItem()) OwnerComponent->UnBindItemCountChangedDelegate(Slot.GetItem());
+		RegisterSlotChange(Slot, OldCount, 0, true, Slot.GetItem());
+		
 		Slot.LastObservedCount = 0;
 		Slot.LastObservedItem = nullptr;
 	}
@@ -148,9 +147,8 @@ void FXIUInventoryList::PostReplicatedAdd(const TArrayView<int32> AddedIndices, 
 		FXIUInventorySlot& Slot = Entries[Index];
 		
 		int NewCount = Slot.GetItem() ? Slot.GetItem()->GetCount() : 0;
-		BroadcastChangeMessage(Slot, /*OldCount=*/ 0, /*NewCount=*/ NewCount, true);
-
-		if (Slot.GetItemSafe()) OwnerComponent->BindItemCountChangedDelegate(Slot.GetItemSafe());
+		RegisterSlotChange(Slot, 0, NewCount, true);
+		
 		Slot.LastObservedCount = NewCount;
 		Slot.LastObservedItem = Slot.GetItemSafe();
 	}
@@ -162,17 +160,12 @@ void FXIUInventoryList::PostReplicatedChange(const TArrayView<int32> ChangedIndi
 	{
 		FXIUInventorySlot& Slot = Entries[Index];
 		check(Slot.LastObservedCount != INDEX_NONE);
-
-		int NewCount = Slot.GetItem() ? Slot.GetItem()->GetCount() : 0;
+		
 		bool bItemChanged = Slot.LastObservedItem != Slot.GetItemSafe();
+		int NewCount = Slot.GetItem() ? Slot.GetItem()->GetCount() : 0;
 		int OldCount = !bItemChanged ? Slot.LastObservedCount : 0;
-		BroadcastChangeMessage(Slot, /*OldCount=*/ OldCount, /*NewCount=*/ NewCount, bItemChanged);
-
-		if (bItemChanged)
-		{
-			if (Slot.LastObservedItem) OwnerComponent->UnBindItemCountChangedDelegate(Slot.LastObservedItem.Get());
-			if (Slot.GetItemSafe()) OwnerComponent->BindItemCountChangedDelegate(Slot.GetItemSafe());
-		}
+		RegisterSlotChange(Slot, OldCount, NewCount, bItemChanged, Slot.LastObservedItem);
+		
 		Slot.LastObservedCount = NewCount;
 		Slot.LastObservedItem = Slot.GetItemSafe();
 	}
@@ -221,8 +214,7 @@ void FXIUInventoryList::InitInventory(int Size)
 		FXIUInventorySlot& NewSlot = Entries.AddDefaulted_GetRef();
 		NewSlot.Index = i;
 		MarkItemDirty(NewSlot);
-		BroadcastChangeMessage(NewSlot, 0, 0, true); // Broadcast on server
-		// No need to bind item count delegate cause item is not assigned in slot yet
+		RegisterSlotChange(NewSlot, 0, 0, true);
 	}
 }
 
@@ -262,9 +254,7 @@ int FXIUInventoryList::AddItemDefault(FXIUItemDefault ItemDefault, TArray<TObjec
 				if (Slot.SetItem(NewItem, OldItem))
 				{
 					MarkItemDirty(Slot);
-					BroadcastChangeMessage(Slot, 0, NewItem->GetCount(), true); // Broadcast on server
-					OwnerComponent->BindItemCountChangedDelegate(NewItem); // Bind on server
-					if (OldItem) OwnerComponent->UnBindItemCountChangedDelegate(OldItem); // UnBind on server
+					RegisterSlotChange(Slot, 0, NewItem->GetCount(), true, OldItem);
 					
 					AddedItems.Add(NewItem);
 					RemainingCount -= NewItem->GetCount();
@@ -315,9 +305,7 @@ int FXIUInventoryList::AddItem(TObjectPtr<UXIUItem> Item, bool bDuplicate, TObje
 				if (Slot.SetItem(NewItem, OldItem))
 				{
 					MarkItemDirty(Slot);
-					BroadcastChangeMessage(Slot, 0, NewItem->GetCount(), true); // Broadcast on server
-					OwnerComponent->BindItemCountChangedDelegate(NewItem); // Bind on server
-					if (OldItem) OwnerComponent->UnBindItemCountChangedDelegate(OldItem); // UnBind on server
+					RegisterSlotChange(Slot, 0, NewItem->GetCount(), true, OldItem);
 					
 					AddedItem = NewItem;
 					if (bDuplicate) Item->SetCount(0);
@@ -341,9 +329,7 @@ bool FXIUInventoryList::SetItemAtSlot(int SlotIndex, TObjectPtr<UXIUItem> Item, 
 		if (Slot.SetItem(NewItem, OldItem))
 		{
 			MarkItemDirty(Slot);
-			BroadcastChangeMessage(Slot, 0, NewItem->GetCount(), true); // Broadcast on server
-			OwnerComponent->BindItemCountChangedDelegate(NewItem); // Bind on server
-			if (OldItem) OwnerComponent->UnBindItemCountChangedDelegate(OldItem); // UnBind on server
+			RegisterSlotChange(Slot, 0, NewItem->GetCount(), true, OldItem);
 			
 			AddedItem = NewItem;
 			return true;
@@ -374,8 +360,7 @@ TObjectPtr<UXIUItem> FXIUInventoryList::RemoveItemAtSlot(int SlotIndex)
 	Slot.Clear(OldItem);
 
 	MarkItemDirty(Slot);
-	BroadcastChangeMessage(Slot, OldItem ? OldItem->GetCount() : 0, 0, true); // Broadcast on server
-	if (OldItem) OwnerComponent->UnBindItemCountChangedDelegate(OldItem); // UnBind on server
+	RegisterSlotChange(Slot, OldItem ? OldItem->GetCount() : 0, 0, true, OldItem);
 	
 	return OldItem;
 }
@@ -411,6 +396,29 @@ int FXIUInventoryList::ConsumeItemByClass(const TSubclassOf<UXIUItem> ItemClass,
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 
+/*--------------------------------------------------------------------------------------------------------------------*/
+/* Items registration */
+
+void FXIUInventoryList::RegisterSlotChange(const FXIUInventorySlot& Slot, const int32 OldCount, const int32 NewCount, const bool bItemChanged, const TObjectPtr<UXIUItem> OldItem)
+{
+	BroadcastChangeMessage(Slot, OldCount, NewCount, bItemChanged); 
+
+	if (bItemChanged)
+	{
+		if (UXIUItem* NewItem = Slot.GetItemSafe())
+		{
+			OwnerComponent->BindItemCountChangedDelegate(NewItem);
+			OwnerComponent->RegisterReplicatedObject(NewItem);
+		}
+		if (OldItem)
+		{
+			OwnerComponent->UnBindItemCountChangedDelegate(OldItem);
+			OwnerComponent->UnregisterReplicatedObject(OldItem);
+		}
+	}
+}
+
+/*--------------------------------------------------------------------------------------------------------------------*/
 
 
 
@@ -485,21 +493,20 @@ void UXIUInventoryComponent::OnRep_InventoryInitialized()
 
 void UXIUInventoryComponent::OnItemCountChanged(const FXIUItemCountChangeMessage& Change)
 {
-	checkf(Change.Item, TEXT("Item is null, Which means something went really wrong"))
+	checkf(Change.Item, TEXT("Item is null, which means something went really wrong"))
 	
-	if (Change.NewCount == 0)
-	{
-		UnBindItemCountChangedDelegate(Change.Item);
-	}
-
+	FXIUInventorySlot ItemSlot;
 	for (const FXIUInventorySlot& Slot : Inventory.GetInventory())
 	{
 		if (Slot.GetItem() == Change.Item)
 		{
-			Inventory.BroadcastChangeMessage(Slot, Change.OldCount, Change.NewCount, Change.NewCount != 0);
+			ItemSlot = Slot;
 			break;
 		}
 	}
+
+	bool bItemChanged = Change.NewCount == 0;
+	Inventory.RegisterSlotChange(ItemSlot, Change.OldCount, Change.NewCount, bItemChanged, bItemChanged? Change.Item : nullptr);
 }
 
 void UXIUInventoryComponent::BindItemCountChangedDelegate(const TObjectPtr<UXIUItem> InItem)
