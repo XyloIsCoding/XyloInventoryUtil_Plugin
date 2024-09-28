@@ -405,6 +405,8 @@ public:
 	/** Check if you can insert any count of this item in inventory */
 	bool CanInsertItem(UXIUItem* Item) const;
 
+	UFUNCTION(BlueprintCallable, Category= "Inventory")
+	UXIUItem* GetItemAtSlot(const int SlotIndex);
 	
 	
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

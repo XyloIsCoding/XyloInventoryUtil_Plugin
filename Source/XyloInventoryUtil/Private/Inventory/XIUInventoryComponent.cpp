@@ -610,6 +610,11 @@ bool UXIUInventoryComponent::CanInsertItem(UXIUItem* Item) const
 	return false;
 }
 
+UXIUItem* UXIUInventoryComponent::GetItemAtSlot(const int SlotIndex)
+{
+	return Inventory.GetItemAtSlot(SlotIndex);
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
