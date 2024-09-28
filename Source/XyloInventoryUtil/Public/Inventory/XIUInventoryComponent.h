@@ -263,7 +263,7 @@ public:
 	/* Slot Item registration */
 
 public:
-	virtual void RegisterSlotChange(const FXIUInventorySlot& Slot, const int32 OldCount, const int32 NewCount, const bool bItemChanged, const TObjectPtr<UXIUItem> OldItem = nullptr);
+	void RegisterSlotChange(const FXIUInventorySlot& Slot, const int32 OldCount, const int32 NewCount, const bool bItemChanged, const TObjectPtr<UXIUItem> OldItem = nullptr);
 	
 /*--------------------------------------------------------------------------------------------------------------------*/
 	

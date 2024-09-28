@@ -2,13 +2,17 @@
 
 
 #include "Inventory/XIUItem.h"
+
+#include "Inventory/XIUInventoryFunctionLibrary.h"
+#include "Inventory/XIUItemDefinition.h"
 #include "Net/UnrealNetwork.h"
 
 
 UXIUItem::UXIUItem(const FObjectInitializer& ObjectInitializer)
 	:Super(ObjectInitializer)
 {
-	MaxCount = 1;
+	ItemDefinition = nullptr;
+	bItemInitialized = false;
 }
 
 AActor* UXIUItem::GetOwningActor() const
@@ -41,8 +45,8 @@ void UXIUItem::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetime
 		BPCClass->GetLifetimeBlueprintReplicationList(OutLifetimeProps);
 	}
 
+	DOREPLIFETIME(ThisClass, ItemDefinition);
 	DOREPLIFETIME(ThisClass, Count);
-	DOREPLIFETIME(ThisClass, MaxCount);
 }
 
 UWorld* UXIUItem::GetWorld() const
@@ -105,9 +109,17 @@ void UXIUItem::OnDestroyedFromReplication()
  * Item
  */
 
+void UXIUItem::SetItemDefinition(UXIUItemDefinition* InItemDefinition)
+{
+	checkf(!bItemInitialized, TEXT("Cannot reassign an item definition"))
+
+	ItemDefinition = InItemDefinition;
+	bItemInitialized = true;
+}
+
 void UXIUItem::OnRep_Count(int OldCount)
 {
-	if (OldCount != -1) // avoid broadcast on first replication (which does not count as real change)
+	if (OldCount != -1) // avoid broadcast on first replication cause it happens on creation (UXIUInventoryFunctionLibrary::MakeItemFromDefault)
 	{
 		ItemCountChangedDelegate.Broadcast(FXIUItemCountChangeMessage(this, OldCount));
 	}
@@ -115,7 +127,7 @@ void UXIUItem::OnRep_Count(int OldCount)
 
 FString UXIUItem::GetItemName() const
 {
-	return ItemName;
+	return ItemDefinition->ItemName;
 }
 
 int UXIUItem::GetCount() const
@@ -126,7 +138,7 @@ int UXIUItem::GetCount() const
 void UXIUItem::SetCount(int NewCount)
 {
 	const int OldCount = Count;
-	Count = FMath::Clamp(NewCount, 0, MaxCount);
+	Count = FMath::Clamp(NewCount, 0, ItemDefinition->MaxCount);
 	if (GetOwningActor()->HasAuthority())
 	{
 		ItemCountChangedDelegate.Broadcast(FXIUItemCountChangeMessage(this, OldCount));
@@ -138,7 +150,7 @@ void UXIUItem::SetCount(int NewCount)
 int UXIUItem::ModifyCount(const int AddCount)
 {
 	const int OldCount = Count;
-	Count = FMath::Clamp(Count + AddCount, 0, MaxCount);
+	Count = FMath::Clamp(Count + AddCount, 0, ItemDefinition->MaxCount);
 	if (GetOwningActor()->HasAuthority())
 	{
 		ItemCountChangedDelegate.Broadcast(FXIUItemCountChangeMessage(this, OldCount));
@@ -153,20 +165,18 @@ bool UXIUItem::IsEmpty() const
 
 bool UXIUItem::IsFull() const
 {
-	return Count == MaxCount;
+	return Count == ItemDefinition->MaxCount;
 }
 
 bool UXIUItem::CanStack(UXIUItem* Item)
 {
-	if (!Item->IsA(GetClass())) return false;
+	if (Item->ItemDefinition != ItemDefinition) return false;
 	return true;
 }
 
 UXIUItem* UXIUItem::Duplicate(UObject* Outer)
 {
-	UXIUItem* Item = NewObject<UXIUItem>(Outer, GetClass());
-	Item->Count = Count;
-	Item->MaxCount = MaxCount;
+	UXIUItem* Item = UXIUInventoryFunctionLibrary::MakeItemFromDefault(Outer, FXIUItemDefault(ItemDefinition, Count));
 	return Item;
 }
 

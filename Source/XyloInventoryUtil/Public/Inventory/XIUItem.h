@@ -7,6 +7,7 @@
 #include "UObject/Object.h"
 #include "XIUItem.generated.h"
 
+class UXIUItemDefinition;
 class UXIUItem;
 
 USTRUCT(BlueprintType)
@@ -37,14 +38,25 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FXIUItemCountChangedSignature, const
 
 
 
-
 USTRUCT(BlueprintType)
 struct FXIUItemDefault
 {
 	GENERATED_BODY()
 
+	FXIUItemDefault()
+		: ItemDefinition(nullptr),
+		  Count(0)
+	{
+	}
+	
+	FXIUItemDefault(UXIUItemDefinition* ItemDefinition, int Count)
+		: ItemDefinition(ItemDefinition),
+		  Count(Count)
+	{
+	}
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<UXIUItem> ItemClass;
+	UXIUItemDefinition* ItemDefinition;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int Count;
 };
@@ -62,7 +74,6 @@ class XYLOINVENTORYUTIL_API UXIUItem : public UObject, public IInterface_ActorSu
 
 public:
 	UXIUItem(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
-
 
 public:
 	//Gets the Actor that "owns" this Replicated UObject.
@@ -109,21 +120,27 @@ public:
 	 * Item
 	 */
 
+private:
+	bool bItemInitialized;
+
+public:
+	UPROPERTY(Replicated)
+	UXIUItemDefinition* ItemDefinition;
+public:
+	UFUNCTION(BlueprintCallable, Category = "Item")
+	void SetItemDefinition(UXIUItemDefinition* InItemDefinition);
+	UFUNCTION(BlueprintCallable, Category = "Item")
+	UXIUItemDefinition* GetItemDefinition() const { return ItemDefinition; }
+	
 public:
 	UPROPERTY(BlueprintAssignable)
 	FXIUItemCountChangedSignature ItemCountChangedDelegate;
-	
-private:
-	UPROPERTY(EditAnywhere, Category = "Item")
-	FString ItemName;
+
 public:
 	UFUNCTION(BlueprintCallable)
 	FString GetItemName() const;
 
-	
 private:
-	UPROPERTY(EditAnywhere, Replicated, Category = "Item")
-	int MaxCount;
 	UPROPERTY(ReplicatedUsing = OnRep_Count)
 	int Count = -1;
 	UFUNCTION()

@@ -4,6 +4,7 @@
 #include "Inventory/XIUInventoryComponent.h"
 
 #include "Inventory/XIUInventoryFunctionLibrary.h"
+#include "Inventory/XIUItemDefinition.h"
 #include "Net/UnrealNetwork.h"
 
 
@@ -164,7 +165,7 @@ void FXIUInventoryList::PostReplicatedChange(const TArrayView<int32> ChangedIndi
 		bool bItemChanged = Slot.LastObservedItem != Slot.GetItemSafe();
 		int NewCount = Slot.GetItem() ? Slot.GetItem()->GetCount() : 0;
 		int OldCount = !bItemChanged ? Slot.LastObservedCount : 0;
-		RegisterSlotChange(Slot, OldCount, NewCount, bItemChanged, Slot.LastObservedItem);
+		RegisterSlotChange(Slot, OldCount, NewCount, bItemChanged, Slot.LastObservedItem.Get());
 		
 		Slot.LastObservedCount = NewCount;
 		Slot.LastObservedItem = Slot.GetItemSafe();
@@ -221,7 +222,7 @@ void FXIUInventoryList::InitInventory(int Size)
 int FXIUInventoryList::AddItemDefault(FXIUItemDefault ItemDefault, TArray<TObjectPtr<UXIUItem>>& AddedItems)
 {
 	check(CanManipulateInventory());
-	checkf(ItemDefault.ItemClass, TEXT("Cannot add item of not specified class"))
+	checkf(ItemDefault.ItemDefinition && ItemDefault.ItemDefinition->ItemClass, TEXT("Cannot add item of not specified class"))
 	
 	int RemainingCount = ItemDefault.Count;
 	if (RemainingCount <= 0) return RemainingCount;
@@ -229,7 +230,7 @@ int FXIUInventoryList::AddItemDefault(FXIUItemDefault ItemDefault, TArray<TObjec
 	// try to add count to existing items
 	for (FXIUInventorySlot& Slot : Entries)
 	{
-		if (!Slot.IsEmpty() && Slot.GetItem().IsA(ItemDefault.ItemClass))
+		if (!Slot.IsEmpty() && Slot.GetItem().IsA(ItemDefault.ItemDefinition->ItemClass))
 		{
 			RemainingCount -= Slot.GetItem()->ModifyCount(RemainingCount);
 			
@@ -245,7 +246,7 @@ int FXIUInventoryList::AddItemDefault(FXIUItemDefault ItemDefault, TArray<TObjec
 	for (FXIUInventorySlot& Slot : Entries)
 	{
 		//check if I can add the item
-		if (Slot.IsEmpty() && !Slot.IsLocked() && Slot.MatchesFilterByClass(ItemDefault.ItemClass))
+		if (Slot.IsEmpty() && !Slot.IsLocked() && Slot.MatchesFilterByClass(ItemDefault.ItemDefinition->ItemClass))
 		{
 			ItemDefault.Count = RemainingCount;
 			if (TObjectPtr<UXIUItem> NewItem = UXIUInventoryFunctionLibrary::MakeItemFromDefault(OwnerComponent->GetOwner(), ItemDefault))

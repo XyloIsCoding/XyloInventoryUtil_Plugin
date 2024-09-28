@@ -64,10 +64,7 @@ bool AXIUItemActor::TryPickUp_Implementation(UXIUInventoryComponent* OtherInvent
 
 void AXIUItemActor::SetItemWithDefault(FXIUItemDefault NewItemDefault)
 {
-	if (NewItemDefault.ItemClass)
-	{
-		Item = UXIUInventoryFunctionLibrary::MakeItemFromDefault(this, NewItemDefault);
-	}
+	Item = UXIUInventoryFunctionLibrary::MakeItemFromDefault(this, NewItemDefault);
 	ItemSet();
 }
 
