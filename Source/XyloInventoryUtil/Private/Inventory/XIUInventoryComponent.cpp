@@ -564,11 +564,6 @@ void UXIUInventoryComponent::AddItemDefault(const FXIUItemDefault ItemDefault)
 	{
 		TArray<TObjectPtr<UXIUItem>> AddedItems;
 		Inventory.AddItemDefault(ItemDefault, AddedItems);
-	
-		for (TObjectPtr<UXIUItem> ItemToRegister : AddedItems)
-		{
-			RegisterReplicatedObject(ItemToRegister);
-		}
 	}
 }
 
@@ -578,8 +573,6 @@ void UXIUInventoryComponent::AddItem(UXIUItem* Item)
 	{
 		TObjectPtr<UXIUItem> AddedItem;
 		Inventory.AddItem(Item, true, AddedItem);
-
-		if (AddedItem) RegisterReplicatedObject(AddedItem);
 	}
 }
 
