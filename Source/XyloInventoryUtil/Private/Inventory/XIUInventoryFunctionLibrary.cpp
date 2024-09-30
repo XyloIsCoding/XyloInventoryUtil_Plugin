@@ -8,7 +8,7 @@
 
 UXIUItem* UXIUInventoryFunctionLibrary::MakeItemFromDefault(UObject* Outer, FXIUItemDefault ItemDefault)
 {
-	if (!ItemDefault.ItemDefinition || !ItemDefault.ItemDefinition->ItemClass) return nullptr;
+	checkf(ItemDefault.ItemDefinition && ItemDefault.ItemDefinition->ItemClass, TEXT("Cannot make item of unset class"))
 	
 	UXIUItem* Item = NewObject<UXIUItem>(Outer, ItemDefault.ItemDefinition->ItemClass);
 	Item->SetItemDefinition(ItemDefault.ItemDefinition);

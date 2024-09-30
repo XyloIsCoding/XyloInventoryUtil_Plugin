@@ -46,6 +46,8 @@ public:
 private:
 	UPROPERTY(EditAnywhere)
 	FXIUItemDefault DefaultItem;
+public:
+	const FXIUItemDefault& GetDefaultItem() const { return DefaultItem; }
 
 private:
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess))
