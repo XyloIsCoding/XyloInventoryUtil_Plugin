@@ -130,7 +130,7 @@ void UXIUItem::OnRep_Count(int OldCount)
 {
 	if (OldCount != -1) // avoid broadcast on first replication cause it happens on creation (UXIUInventoryFunctionLibrary::MakeItemFromDefault)
 	{
-		ItemCountChangedDelegate.Broadcast(FXIUItemCountChangeMessage(this, OldCount));
+		if (Count != OldCount) ItemCountChangedDelegate.Broadcast(FXIUItemCountChangeMessage(this, OldCount));
 	}
 }
 
@@ -148,12 +148,13 @@ void UXIUItem::SetCount(int NewCount)
 {
 	const int OldCount = Count;
 	Count = FMath::Clamp(NewCount, 0, ItemDefinition->MaxCount);
+
 	if (GetOwningActor()->HasAuthority())
 	{
-		ItemCountChangedDelegate.Broadcast(FXIUItemCountChangeMessage(this, OldCount));
+		if (Count != OldCount) ItemCountChangedDelegate.Broadcast(FXIUItemCountChangeMessage(this, OldCount));
 	}
 
-	//UE_LOG(LogTemp, Warning, TEXT("Set Count %i (requested %i. MaxCount %i)"), Count, NewCount, MaxCount)
+	//UE_LOG(LogTemp, Warning, TEXT("Set Count %i (requested %i. MaxCount %i)"), Count, NewCount, ItemDefinition->MaxCount)
 }
 
 int UXIUItem::ModifyCount(const int AddCount)
@@ -162,7 +163,7 @@ int UXIUItem::ModifyCount(const int AddCount)
 	Count = FMath::Clamp(Count + AddCount, 0, ItemDefinition->MaxCount);
 	if (GetOwningActor()->HasAuthority())
 	{
-		ItemCountChangedDelegate.Broadcast(FXIUItemCountChangeMessage(this, OldCount));
+		if (Count != OldCount) ItemCountChangedDelegate.Broadcast(FXIUItemCountChangeMessage(this, OldCount));
 	}
 	return Count - OldCount;
 }
