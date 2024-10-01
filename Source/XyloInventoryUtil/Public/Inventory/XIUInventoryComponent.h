@@ -371,7 +371,7 @@ private:
 	virtual void ApplySettingsToSlots();
 
 private:
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category= "Inventory")
 	TArray<FXIUItemDefault> DefaultItems;
 public:
 	UFUNCTION(BlueprintCallable, Category= "Inventory")
