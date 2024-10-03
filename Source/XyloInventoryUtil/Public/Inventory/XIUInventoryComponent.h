@@ -9,6 +9,7 @@
 #include "XIUInventoryComponent.generated.h"
 
 
+class AXIUItemActor;
 struct FXIUInventoryList;
 class UXIUInventoryComponent;
 
@@ -379,6 +380,10 @@ public:
 	UFUNCTION(Server, Reliable, Category= "Inventory")
 	void ServerAddDefaultItems();
 
+private:
+	/** Default class used to drop items */
+	UPROPERTY(EditAnywhere, Category= "Inventory")
+	TSubclassOf<AXIUItemActor> DefaultItemActorClass;
 	
 public:
 	UFUNCTION(BlueprintCallable, Category= "Inventory")
@@ -397,6 +402,16 @@ public:
 	UFUNCTION(BlueprintCallable, Category= "Inventory")
 	void TransferItemFromSlot(int SlotIndex, UXIUInventoryComponent* OtherInventory);
 
+	/** drop the item at this slot by spawning a XIUItemActor
+	 * @param DropTransform: transform used for deferred spawn
+	 * @param SlotIndex: index of the slot to drop the item from
+	 * @param Count: count to drop of that item (if -1 drops all)
+	 * @param ItemActorClass: class of the item actor. If not specified, DefaultItemActorClass is used
+	 * @return pointer to the item actor. FinishSpawning must be called
+	 */
+	UFUNCTION(BlueprintCallable, Category= "Inventory")
+	AXIUItemActor* DropItemAtSlot(const FTransform& DropTransform, const int SlotIndex, const int Count = -1, const TSubclassOf<AXIUItemActor> ItemActorClass = nullptr);
+	
 	/** Gets first item in the inventory (not necessarily first slot)
 	 * (Already checks IsEmpty on items) */
 	UFUNCTION(BlueprintCallable, Category= "Inventory")

@@ -23,7 +23,7 @@ void AXIUItemActor::BeginPlay()
 {
 	Super::BeginPlay();
 
-	SetItemWithDefault(DefaultItem);
+	if (!Item && DefaultItem.ItemDefinition) SetItemWithDefault(DefaultItem);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

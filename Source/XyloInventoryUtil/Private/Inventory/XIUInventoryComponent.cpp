@@ -4,6 +4,7 @@
 #include "Inventory/XIUInventoryComponent.h"
 
 #include "Inventory/XIUInventoryFunctionLibrary.h"
+#include "Inventory/XIUItemActor.h"
 #include "Inventory/XIUItemDefinition.h"
 #include "Net/UnrealNetwork.h"
 
@@ -590,6 +591,34 @@ void UXIUInventoryComponent::TransferItemFromSlot(int SlotIndex, UXIUInventoryCo
 			OtherInventory->AddItem(Item);
 		}
 	}
+}
+
+AXIUItemActor* UXIUInventoryComponent::DropItemAtSlot(const FTransform& DropTransform, const int SlotIndex, const int Count, const TSubclassOf<AXIUItemActor> ItemActorClass)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority() || Count == 0) return nullptr;
+
+	if (UXIUItem* ItemToDrop = GetItemAtSlot(SlotIndex))
+	{
+		if (UWorld* World = GetWorld())
+		{
+			const TSubclassOf<AXIUItemActor> DropActorClass = ItemActorClass ? ItemActorClass : DefaultItemActorClass;
+			AXIUItemActor* DroppedItemActor = World->SpawnActorDeferred<AXIUItemActor>(DropActorClass , DropTransform);
+			DroppedItemActor->SetItem(ItemToDrop);
+
+			if (Count > 0)
+			{
+				// Modify count of the item in DroppedItemActor
+				const int CountToDrop = FMath::Min(ItemToDrop->GetCount(), Count);
+				DroppedItemActor->Execute_GetItem(DroppedItemActor)->SetCount(CountToDrop);
+				// Adjust the count in original item
+				ItemToDrop->ModifyCount(-CountToDrop);
+			}
+			else ItemToDrop->SetCount(0); // Count = -1 so we dropped everything
+			
+			return DroppedItemActor;
+		}
+	}
+	return nullptr;
 }
 
 UXIUItem* UXIUInventoryComponent::GetFirstItem()
