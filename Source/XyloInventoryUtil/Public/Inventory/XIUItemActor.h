@@ -49,6 +49,9 @@ private:
 public:
 	const FXIUItemDefault& GetDefaultItem() const { return DefaultItem; }
 
+/*--------------------------------------------------------------------------------------------------------------------*/
+	/* Item Setter */
+	
 private:
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess))
 	UXIUItem* Item;
@@ -62,6 +65,11 @@ protected:
 	virtual void ItemSet();
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "ItemSet"))
 	void BP_ItemSet();
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+
+public:
+	virtual bool TryPickUpInSlot(UXIUInventoryComponent* OtherInventory, const int SlotIndex);
 	
 
 };

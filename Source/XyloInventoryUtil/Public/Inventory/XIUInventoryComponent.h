@@ -398,6 +398,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category= "Inventory")
 	void AddItem(UXIUItem* Item);
 
+	/** duplicates this item and sets it in slot (replacing old item if present)
+	 * does not modify in any way the item passed as parameter
+	 * @return: true if successful */
+	UFUNCTION(BlueprintCallable, Category= "Inventory")
+	bool SetItemAtSlot(const int SlotIndex, UXIUItem* Item);
+
 	/** transfer as much count as possible of the item at this slot (internally uses AddItem on OtherInventory) */
 	UFUNCTION(BlueprintCallable, Category= "Inventory")
 	void TransferItemFromSlot(int SlotIndex, UXIUInventoryComponent* OtherInventory);

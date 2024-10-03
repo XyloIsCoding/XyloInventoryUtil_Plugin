@@ -581,6 +581,17 @@ void UXIUInventoryComponent::AddItem(UXIUItem* Item)
 	}
 }
 
+bool UXIUInventoryComponent::SetItemAtSlot(const int SlotIndex, UXIUItem* Item)
+{
+	if (GetOwner() && GetOwner()->HasAuthority())
+	{
+		TObjectPtr<UXIUItem> AddedItem;
+		TObjectPtr<UXIUItem> OldItem;
+		return Inventory.SetItemAtSlot(SlotIndex, Item, true, AddedItem, OldItem);
+	}
+	return false;
+}
+
 void UXIUInventoryComponent::TransferItemFromSlot(int SlotIndex, UXIUInventoryComponent* OtherInventory)
 {
 	if (GetOwner() && GetOwner()->HasAuthority())

@@ -62,6 +62,9 @@ bool AXIUItemActor::TryPickUp_Implementation(UXIUInventoryComponent* OtherInvent
  * ItemActor 
  */
 
+/*--------------------------------------------------------------------------------------------------------------------*/
+/* Item Setter */
+
 void AXIUItemActor::SetItemWithDefault(FXIUItemDefault NewItemDefault)
 {
 	Item = UXIUInventoryFunctionLibrary::MakeItemFromDefault(this, NewItemDefault);
@@ -82,3 +85,26 @@ void AXIUItemActor::ItemSet()
 	if (!Execute_GetItem(this)) Destroy();
 }
 
+/*--------------------------------------------------------------------------------------------------------------------*/
+
+bool AXIUItemActor::TryPickUpInSlot(UXIUInventoryComponent* OtherInventory, const int SlotIndex)
+{
+	if (!OtherInventory) return false;
+	
+	if (UXIUItem* GotItem = Execute_GetItem(this))
+	{
+		if (OtherInventory->SetItemAtSlot(SlotIndex, GotItem))
+		{
+			// item got fully picked up
+			GotItem->SetCount(0);
+		}
+
+		// no item count left
+		if (GotItem->IsEmpty()) Destroy();
+		return true;
+	}
+	
+	// no item
+	Destroy();
+	return false;
+}

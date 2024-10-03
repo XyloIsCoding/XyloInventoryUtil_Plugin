@@ -18,7 +18,7 @@ UXIUItem* UXIUInventoryFunctionLibrary::MakeItemFromDefault(UObject* Outer, FXIU
 
 UXIUItem* UXIUInventoryFunctionLibrary::DuplicateItem(UObject* Outer, UXIUItem* Item)
 {
-	checkf(Item, TEXT("Cannot duplicate null stack"));
+	checkf(Item, TEXT("Cannot duplicate null item"));
 	return Item->Duplicate(Outer);
 }
 
