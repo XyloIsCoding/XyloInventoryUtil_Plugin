@@ -417,6 +417,10 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category= "Inventory")
 	AXIUItemActor* DropItemAtSlot(const FTransform& DropTransform, const int SlotIndex, const int Count = -1, const TSubclassOf<AXIUItemActor> ItemActorClass = nullptr);
+
+	/** @return number of items actually consumed */
+	UFUNCTION(BlueprintCallable, Category= "Inventory")
+	int ConsumeItemsByDefinition(UXIUItemDefinition* ItemDefinition, const int Count);
 	
 	/** Gets first item in the inventory (not necessarily first slot)
 	 * (Already checks IsEmpty on items) */

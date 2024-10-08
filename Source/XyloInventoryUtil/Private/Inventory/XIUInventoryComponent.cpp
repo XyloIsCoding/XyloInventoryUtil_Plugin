@@ -381,19 +381,20 @@ bool FXIUInventoryList::GetItemsByClass(const TSubclassOf<UXIUItem> ItemClass, T
 
 int FXIUInventoryList::ConsumeItemByDefinition(const TObjectPtr<UXIUItemDefinition> ItemDefinition, const int Count)
 {
-	int RemainingCount = Count;
-
-	// try to add count to existing items
+	check(CanManipulateInventory());
+	if (!ItemDefinition) return 0;
+	
+	int CountLeftToConsume = Count;
 	for (FXIUInventorySlot& Slot : Entries)
 	{
 		if (!Slot.IsEmpty() && Slot.GetItem()->GetItemDefinition() == ItemDefinition)
 		{
-			RemainingCount -= -Slot.GetItem()->ModifyCount(-RemainingCount); // we are removing count, so the function returns a negative number representing the count removed
+			CountLeftToConsume -= -Slot.GetItem()->ModifyCount(-CountLeftToConsume); // we are removing count, so the function returns a negative number representing the count removed
 			
-			if (RemainingCount <= 0) break;
+			if (CountLeftToConsume <= 0) break;
 		}
 	}
-	return Count - RemainingCount; // Consumed items
+	return Count - CountLeftToConsume; // Consumed items
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -510,7 +511,7 @@ void UXIUInventoryComponent::OnItemCountChanged(const FXIUItemCountChangeMessage
 	if (ItemSlot.GetItem())
 	{
 		bool bItemChanged = Change.Item->GetCount() == 0;
-		Inventory.RegisterSlotChange(ItemSlot, Change.OldCount, Change.Item->GetCount(), bItemChanged, bItemChanged? Change.Item : nullptr);
+		Inventory.RegisterSlotChange(ItemSlot, Change.OldCount, Change.Item->GetCount(), bItemChanged, /*bItemChanged? Change.Item :*/ nullptr);
 	}
 }
 
@@ -630,6 +631,11 @@ AXIUItemActor* UXIUInventoryComponent::DropItemAtSlot(const FTransform& DropTran
 		}
 	}
 	return nullptr;
+}
+
+int UXIUInventoryComponent::ConsumeItemsByDefinition(UXIUItemDefinition* ItemDefinition, const int Count)
+{
+	return Inventory.ConsumeItemByDefinition(ItemDefinition, Count);
 }
 
 UXIUItem* UXIUInventoryComponent::GetFirstItem()
