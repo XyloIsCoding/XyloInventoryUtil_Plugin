@@ -423,6 +423,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category= "Inventory")
 	UXIUItem* GetFirstItem();
 
+	UFUNCTION(BlueprintCallable, Category= "Inventory")
+	int CountItemsByDefinition(UXIUItemDefinition* ItemDefinition);
+
 	/** Check if you can insert any count of this item in inventory */
 	bool CanInsertItem(UXIUItem* Item) const;
 

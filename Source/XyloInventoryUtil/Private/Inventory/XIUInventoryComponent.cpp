@@ -644,6 +644,19 @@ UXIUItem* UXIUInventoryComponent::GetFirstItem()
 	return nullptr;
 }
 
+int UXIUInventoryComponent::CountItemsByDefinition(UXIUItemDefinition* ItemDefinition)
+{
+	int Count = 0;
+	for (const FXIUInventorySlot& Slot : Inventory.GetInventory())
+	{
+		if (UXIUItem* Item = Slot.GetItem())
+		{
+			if (Item->GetItemDefinition() == ItemDefinition) Count += Item->GetCount();
+		}
+	}
+	return Count;
+}
+
 bool UXIUInventoryComponent::CanInsertItem(UXIUItem* Item) const
 {
 	for (const FXIUInventorySlot& Slot : Inventory.GetInventory())
