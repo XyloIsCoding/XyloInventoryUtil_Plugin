@@ -208,7 +208,7 @@ public:
 	/* Helpers */
 	
 public:
-	void BroadcastChangeMessage(const FXIUInventorySlot& Entry, const int32 OldCount, const int32 NewCount, const bool bItemChanged) const;
+	void BroadcastChangeMessage(const FXIUInventorySlot& Entry, const int32 OldCount, const int32 NewCount, const bool bItemChanged, TObjectPtr<UXIUItem> OldItem) const;
 private:
 	bool CanManipulateInventory() const;
 
@@ -264,7 +264,15 @@ public:
 	/* Slot Item registration */
 
 public:
-	void RegisterSlotChange(const FXIUInventorySlot& Slot, const int32 OldCount, const int32 NewCount, const bool bItemChanged, const TObjectPtr<UXIUItem> OldItem = nullptr);
+	/**
+	 * 
+	 * @param Slot: reference to modified slot
+	 * @param OldCount: old count of item in slot
+	 * @param NewCount: new count of item in slot
+	 * @param bRegisterItemChange: if true stops replicating old item and unbind delegate, and start replicating new item and bind delegate
+	 * @param OldItem: old item that was in slot
+	 */
+	void RegisterSlotChange(const FXIUInventorySlot& Slot, const int32 OldCount, const int32 NewCount, const bool bRegisterItemChange, const TObjectPtr<UXIUItem> OldItem = nullptr);
 	
 /*--------------------------------------------------------------------------------------------------------------------*/
 	

@@ -179,7 +179,7 @@ void FXIUInventoryList::PostReplicatedChange(const TArrayView<int32> ChangedIndi
 /*--------------------------------------------------------------------------------------------------------------------*/
 /* Helpers */
 
-void FXIUInventoryList::BroadcastChangeMessage(const FXIUInventorySlot& Entry, const int32 OldCount, const int32 NewCount, const bool bItemChanged) const
+void FXIUInventoryList::BroadcastChangeMessage(const FXIUInventorySlot& Entry, const int32 OldCount, const int32 NewCount, const bool bItemChanged, TObjectPtr<UXIUItem> OldItem) const
 {
 	FXIUInventorySlotChangeMessage Message;
 	Message.InventoryOwner = OwnerComponent;
@@ -402,11 +402,11 @@ int FXIUInventoryList::ConsumeItemByDefinition(const TObjectPtr<UXIUItemDefiniti
 /*--------------------------------------------------------------------------------------------------------------------*/
 /* Items registration */
 
-void FXIUInventoryList::RegisterSlotChange(const FXIUInventorySlot& Slot, const int32 OldCount, const int32 NewCount, const bool bItemChanged, const TObjectPtr<UXIUItem> OldItem)
+void FXIUInventoryList::RegisterSlotChange(const FXIUInventorySlot& Slot, const int32 OldCount, const int32 NewCount, const bool bRegisterItemChange, const TObjectPtr<UXIUItem> OldItem)
 {
-	BroadcastChangeMessage(Slot, OldCount, NewCount, bItemChanged); 
+	BroadcastChangeMessage(Slot, OldCount, NewCount, Slot.Item != OldItem, OldItem); 
 
-	if (bItemChanged)
+	if (bRegisterItemChange)
 	{
 		if (UXIUItem* NewItem = Slot.GetItemSafe())
 		{
@@ -511,7 +511,7 @@ void UXIUInventoryComponent::OnItemCountChanged(const FXIUItemCountChangeMessage
 	if (ItemSlot.GetItem())
 	{
 		bool bItemChanged = Change.Item->GetCount() == 0;
-		Inventory.RegisterSlotChange(ItemSlot, Change.OldCount, Change.Item->GetCount(), bItemChanged, /*bItemChanged? Change.Item :*/ nullptr);
+		Inventory.RegisterSlotChange(ItemSlot, Change.OldCount, Change.Item->GetCount(), false, bItemChanged? Change.Item : nullptr);
 	}
 }
 
