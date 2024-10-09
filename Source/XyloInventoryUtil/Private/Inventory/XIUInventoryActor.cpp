@@ -12,8 +12,6 @@ AXIUInventoryActor::AXIUInventoryActor()
 	PrimaryActorTick.bCanEverTick = false;
 	
 	InventoryComponent = CreateDefaultSubobject<UXIUInventoryComponent>(TEXT("InventoryComponent"));
-	InventoryComponent->InventoryInitializedDelegate.AddDynamic(this, &AXIUInventoryActor::OnInventoryInitialized);
-	InventoryComponent->InventoryChangedDelegate.AddDynamic(this, &AXIUInventoryActor::OnInventoryChanged);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -25,6 +23,12 @@ AXIUInventoryActor::AXIUInventoryActor()
 void AXIUInventoryActor::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (InventoryComponent)
+	{
+		InventoryComponent->InventoryInitializedDelegate.AddDynamic(this, &AXIUInventoryActor::OnInventoryInitialized);
+		InventoryComponent->InventoryChangedDelegate.AddDynamic(this, &AXIUInventoryActor::OnInventoryChanged);
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
