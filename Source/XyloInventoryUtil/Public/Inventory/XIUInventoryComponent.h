@@ -38,6 +38,9 @@ struct FXIUInventorySlotChangeMessage
 	int32 Delta = 0;
 
 	UPROPERTY(BlueprintReadOnly, Category = Inventory)
+	TObjectPtr<UXIUItem> OldItem = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, Category = Inventory)
 	TSubclassOf<UXIUItem> Filter = nullptr;
 
 	UPROPERTY(BlueprintReadOnly, Category=Inventory)

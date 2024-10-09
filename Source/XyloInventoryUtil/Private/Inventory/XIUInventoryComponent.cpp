@@ -188,6 +188,7 @@ void FXIUInventoryList::BroadcastChangeMessage(const FXIUInventorySlot& Entry, c
 	Message.Item = Entry.GetItemSafe();
 	Message.NewCount = NewCount;
 	Message.Delta = NewCount - OldCount;
+	Message.OldItem = OldItem;
 	Message.Filter = Entry.Filter;
 	Message.bLocked = Entry.bLocked;
 
