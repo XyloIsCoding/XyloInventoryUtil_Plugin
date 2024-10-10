@@ -71,8 +71,6 @@ private:
 	
 public:
 	FXIUInventorySlot()
-		: Index(-1),
-		  bLocked(false)
 	{
 	}
 
@@ -84,7 +82,7 @@ public:
 	
 private:
 	UPROPERTY()
-	int Index;
+	int Index = -1;
 public:
 	int GetIndex() const { return Index; }
 
@@ -121,7 +119,7 @@ public:
 	
 private:
 	UPROPERTY()
-	TSubclassOf<UXIUItem> Filter;
+	TSubclassOf<UXIUItem> Filter = nullptr;
 public:
 	void SetFilter(const TSubclassOf<UXIUItem> NewFilter);
 	TSubclassOf<UXIUItem> GetFilter() const { return Filter; }
@@ -135,7 +133,7 @@ public:
 	
 private:
 	UPROPERTY()
-	bool bLocked;
+	bool bLocked = false;
 public:
 	void SetLocked(bool NewLock);
 	bool IsLocked() const { return bLocked; }
