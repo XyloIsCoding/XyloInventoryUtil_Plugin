@@ -209,7 +209,7 @@ public:
 	/* Helpers */
 	
 public:
-	void BroadcastChangeMessage(const FXIUInventorySlot& Entry, const int32 OldCount, const int32 NewCount, const bool bItemChanged, TObjectPtr<UXIUItem> OldItem) const;
+	void BroadcastChangeMessage(const FXIUInventorySlot& Entry, const int32 OldCount, const int32 NewCount, const TObjectPtr<UXIUItem> OldItem) const;
 private:
 	bool CanManipulateInventory() const;
 

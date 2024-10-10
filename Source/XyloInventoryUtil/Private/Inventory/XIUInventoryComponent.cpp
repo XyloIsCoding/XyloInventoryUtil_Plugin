@@ -179,12 +179,12 @@ void FXIUInventoryList::PostReplicatedChange(const TArrayView<int32> ChangedIndi
 /*--------------------------------------------------------------------------------------------------------------------*/
 /* Helpers */
 
-void FXIUInventoryList::BroadcastChangeMessage(const FXIUInventorySlot& Entry, const int32 OldCount, const int32 NewCount, const bool bItemChanged, TObjectPtr<UXIUItem> OldItem) const
+void FXIUInventoryList::BroadcastChangeMessage(const FXIUInventorySlot& Entry, const int32 OldCount, const int32 NewCount, const TObjectPtr<UXIUItem> OldItem) const
 {
 	FXIUInventorySlotChangeMessage Message;
 	Message.InventoryOwner = OwnerComponent;
 	Message.Index = Entry.Index;
-	Message.bItemChanged = bItemChanged;
+	Message.bItemChanged = Entry.Item != OldItem || NewCount == 0;
 	Message.Item = Entry.GetItemSafe();
 	Message.NewCount = NewCount;
 	Message.Delta = NewCount - OldCount;
@@ -405,7 +405,7 @@ int FXIUInventoryList::ConsumeItemByDefinition(const TObjectPtr<UXIUItemDefiniti
 
 void FXIUInventoryList::RegisterSlotChange(const FXIUInventorySlot& Slot, const int32 OldCount, const int32 NewCount, const bool bRegisterItemChange, const TObjectPtr<UXIUItem> OldItem)
 {
-	BroadcastChangeMessage(Slot, OldCount, NewCount, Slot.Item != OldItem, OldItem); 
+	BroadcastChangeMessage(Slot, OldCount, NewCount, OldItem); 
 
 	if (bRegisterItemChange)
 	{
@@ -518,7 +518,7 @@ void UXIUInventoryComponent::OnItemCountChanged(const FXIUItemCountChangeMessage
 
 void UXIUInventoryComponent::BindItemCountChangedDelegate(const TObjectPtr<UXIUItem> InItem)
 {
-	InItem->ItemCountChangedDelegate.AddDynamic(this, &ThisClass::OnItemCountChanged);
+	InItem->ItemCountChangedDelegate.AddUniqueDynamic(this, &ThisClass::OnItemCountChanged);
 }
 
 void UXIUInventoryComponent::UnBindItemCountChangedDelegate(const TObjectPtr<UXIUItem> InItem)

@@ -26,8 +26,8 @@ void AXIUInventoryActor::BeginPlay()
 
 	if (InventoryComponent)
 	{
-		InventoryComponent->InventoryInitializedDelegate.AddDynamic(this, &AXIUInventoryActor::OnInventoryInitialized);
-		InventoryComponent->InventoryChangedDelegate.AddDynamic(this, &AXIUInventoryActor::OnInventoryChanged);
+		InventoryComponent->InventoryInitializedDelegate.AddUniqueDynamic(this, &AXIUInventoryActor::OnInventoryInitialized);
+		InventoryComponent->InventoryChangedDelegate.AddUniqueDynamic(this, &AXIUInventoryActor::OnInventoryChanged);
 	}
 }
 
