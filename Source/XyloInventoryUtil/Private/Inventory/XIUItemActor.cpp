@@ -5,11 +5,13 @@
 
 #include "Inventory/XIUInventoryComponent.h"
 #include "Inventory/XIUInventoryFunctionLibrary.h"
+#include "Net/UnrealNetwork.h"
 
 AXIUItemActor::AXIUItemActor()
 {
 	bReplicates = true;
 	PrimaryActorTick.bCanEverTick = false;
+	bReplicateUsingRegisteredSubObjectList = true;
 	Item = nullptr;
 }
 
@@ -24,6 +26,13 @@ void AXIUItemActor::BeginPlay()
 	Super::BeginPlay();
 
 	if (!Item && DefaultItem.ItemDefinition) SetItemWithDefault(DefaultItem);
+}
+
+void AXIUItemActor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ThisClass, Item);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -67,13 +76,23 @@ bool AXIUItemActor::TryPickUp_Implementation(UXIUInventoryComponent* OtherInvent
 
 void AXIUItemActor::SetItemWithDefault(FXIUItemDefault NewItemDefault)
 {
-	Item = UXIUInventoryFunctionLibrary::MakeItemFromDefault(this, NewItemDefault);
-	ItemSet();
+	SetItem(UXIUInventoryFunctionLibrary::MakeItemFromDefault(this, NewItemDefault));
 }
 
 void AXIUItemActor::SetItem(UXIUItem* NewItem)
 {
+	UXIUItem* OldItem = Item;
 	Item = UXIUInventoryFunctionLibrary::DuplicateItem(this, NewItem);
+	OnRep_Item(OldItem);
+}
+
+void AXIUItemActor::OnRep_Item(UXIUItem* OldItem)
+{
+	if (IsUsingRegisteredSubObjectList())
+	{
+		if (IsValid(OldItem)) RemoveReplicatedSubObject(OldItem);
+		if (IsValid(Item)) AddReplicatedSubObject(Item);
+	}
 	ItemSet();
 }
 
@@ -81,8 +100,11 @@ void AXIUItemActor::ItemSet()
 {
 	BP_ItemSet();
 
-	// no item
-	if (!Execute_GetItem(this)) Destroy();
+	if (HasAuthority())
+	{
+		// no item
+		if (!Execute_GetItem(this)) Destroy();
+	}
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/

@@ -25,6 +25,8 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+public:
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -53,7 +55,7 @@ public:
 	/* Item Setter */
 	
 private:
-	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess))
+	UPROPERTY(ReplicatedUsing = OnRep_Item, BlueprintReadOnly, meta = (AllowPrivateAccess))
 	UXIUItem* Item;
 public:
 	UFUNCTION(BlueprintCallable)
@@ -61,6 +63,9 @@ public:
 	/** Duplicate the item and set the duplicate as this actor's item (does not touch the input item) */
 	UFUNCTION(BlueprintCallable)
 	void SetItem(UXIUItem* NewItem);
+protected:
+	UFUNCTION()
+	void OnRep_Item(UXIUItem* OldItem);
 protected:
 	virtual void ItemSet();
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "ItemSet"))

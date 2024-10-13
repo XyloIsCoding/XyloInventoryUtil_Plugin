@@ -132,6 +132,9 @@ public:
 	void SetItemDefinition(UXIUItemDefinition* InItemDefinition);
 	UFUNCTION(BlueprintCallable, Category = "Item")
 	UXIUItemDefinition* GetItemDefinition() const { return ItemDefinition; }
+protected:
+	/** Called by SetItemDefinition */
+	virtual void OnItemInitialized();
 	
 public:
 	UPROPERTY(BlueprintAssignable)

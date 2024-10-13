@@ -123,6 +123,11 @@ void UXIUItem::SetItemDefinition(UXIUItemDefinition* InItemDefinition)
 	}
 	
 	bItemInitialized = true;
+	OnItemInitialized();
+}
+
+void UXIUItem::OnItemInitialized()
+{
 }
 
 void UXIUItem::OnRep_Count(int OldCount)
