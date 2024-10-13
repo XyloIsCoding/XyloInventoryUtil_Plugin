@@ -336,6 +336,8 @@ public:
 private:
 	UPROPERTY(ReplicatedUsing = OnRep_InventoryInitialized)
 	bool bInventoryInitialized = false;
+protected:
+	void SetInventoryInitialized(bool bInitialized);
 	UFUNCTION()
 	void OnRep_InventoryInitialized();
 public:

@@ -465,8 +465,7 @@ void UXIUInventoryComponent::BeginPlay()
 		ApplySettingsToSlots();
 		InputAddDefaultItems();
 
-		bInventoryInitialized = true;
-		InventoryInitializedDelegate.Broadcast();
+		SetInventoryInitialized(true);
 	}
 }
 
@@ -489,6 +488,12 @@ void UXIUInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 /* Delegates */
+
+void UXIUInventoryComponent::SetInventoryInitialized(bool bInitialized)
+{
+	bInventoryInitialized = bInitialized;
+	OnRep_InventoryInitialized();
+}
 
 void UXIUInventoryComponent::OnRep_InventoryInitialized()
 {

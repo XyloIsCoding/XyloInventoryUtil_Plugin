@@ -100,7 +100,6 @@ void UXIUItem::OnDestroyedFromReplication()
 {
 	const int OldCount = GetCount();
 	SetCount(0); // setting count to zero locally to signal that we are destroying the item (might have not replicated yet)
-	ItemCountChangedDelegate.Broadcast(FXIUItemCountChangeMessage(this, OldCount));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -149,11 +148,7 @@ void UXIUItem::SetCount(int NewCount)
 	const int OldCount = Count;
 	Count = FMath::Clamp(NewCount, 0, ItemDefinition->MaxCount);
 
-	if (GetOwningActor()->HasAuthority())
-	{
-		if (Count != OldCount) ItemCountChangedDelegate.Broadcast(FXIUItemCountChangeMessage(this, OldCount));
-	}
-
+	OnRep_Count(OldCount);
 	//UE_LOG(LogTemp, Warning, TEXT("Set Count %i (requested %i. MaxCount %i)"), Count, NewCount, ItemDefinition->MaxCount)
 }
 
@@ -161,10 +156,8 @@ int UXIUItem::ModifyCount(const int AddCount)
 {
 	const int OldCount = Count;
 	Count = FMath::Clamp(Count + AddCount, 0, ItemDefinition->MaxCount);
-	if (GetOwningActor()->HasAuthority())
-	{
-		if (Count != OldCount) ItemCountChangedDelegate.Broadcast(FXIUItemCountChangeMessage(this, OldCount));
-	}
+
+	OnRep_Count(OldCount);
 	return Count - OldCount;
 }
 
