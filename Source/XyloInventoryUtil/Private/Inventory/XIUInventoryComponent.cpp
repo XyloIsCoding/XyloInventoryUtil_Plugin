@@ -463,7 +463,7 @@ void UXIUInventoryComponent::BeginPlay()
 	{
 		Inventory.InitInventory(FMath::Max(InventorySize, DefaultItems.Num()));
 		ApplySettingsToSlots();
-		AddDefaultItems();
+		InputAddDefaultItems();
 
 		bInventoryInitialized = true;
 		InventoryInitializedDelegate.Broadcast();
@@ -534,20 +534,31 @@ void UXIUInventoryComponent::ApplySettingsToSlots()
 	
 }
 
-void UXIUInventoryComponent::AddDefaultItems()
+void UXIUInventoryComponent::InputAddDefaultItems()
 {
-	ServerAddDefaultItems();
+	if (!GetOwner()) return;
+	
+	if (GetOwner()->HasAuthority())
+	{
+		AddDefaultItems();
+	}
+	else
+	{
+		ServerAddDefaultItemsRPC();
+	}
 }
 
-void UXIUInventoryComponent::ServerAddDefaultItems_Implementation()
+void UXIUInventoryComponent::ServerAddDefaultItemsRPC_Implementation()
 {
-	if (GetOwner() && GetOwner()->HasAuthority())
-    {
-    	for (const FXIUItemDefault DefaultItem : DefaultItems)
-    	{
-    		AddItemDefault(DefaultItem);
-    	}
-    }
+	AddDefaultItems();
+}
+
+void UXIUInventoryComponent::AddDefaultItems()
+{
+	for (const FXIUItemDefault DefaultItem : DefaultItems)
+	{
+		AddItemDefault(DefaultItem);
+	}
 }
 
 void UXIUInventoryComponent::PrintItems()

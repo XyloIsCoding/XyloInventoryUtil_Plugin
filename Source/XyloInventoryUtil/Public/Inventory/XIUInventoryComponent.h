@@ -385,9 +385,10 @@ private:
 	TArray<FXIUItemDefault> DefaultItems;
 public:
 	UFUNCTION(BlueprintCallable, Category= "Inventory")
-	void AddDefaultItems();
+	void InputAddDefaultItems();
 	UFUNCTION(Server, Reliable, Category= "Inventory")
-	void ServerAddDefaultItems();
+	void ServerAddDefaultItemsRPC();
+	void AddDefaultItems();
 
 private:
 	/** Default class used to drop items */
