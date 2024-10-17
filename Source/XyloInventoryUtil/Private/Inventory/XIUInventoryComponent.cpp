@@ -418,7 +418,6 @@ void FXIUInventoryList::RegisterSlotChange(const FXIUInventorySlot& Slot, const 
 		{
 			OwnerComponent->UnBindItemCountChangedDelegate(OldItem);
 			OwnerComponent->UnregisterReplicatedObject(OldItem);
-			if (OldItem->GetCount() == 0) OldItem->DestroyObject();
 		}
 	}
 }
@@ -702,7 +701,7 @@ UXIUItem* UXIUInventoryComponent::GetItemAtSlot(const int SlotIndex)
  * SubObjects Replication
  */
 
-bool UXIUInventoryComponent::RegisterReplicatedObject(UObject* ObjectToRegister)
+bool UXIUInventoryComponent::RegisterReplicatedObject(UXIUItem* ObjectToRegister)
 {
 	if (IsUsingRegisteredSubObjectList() && IsReadyForReplication() && IsValid(ObjectToRegister))
 	{
@@ -713,12 +712,13 @@ bool UXIUInventoryComponent::RegisterReplicatedObject(UObject* ObjectToRegister)
 	return false;
 }
 
-bool UXIUInventoryComponent::UnregisterReplicatedObject(UObject* ObjectToUnregister)
+bool UXIUInventoryComponent::UnregisterReplicatedObject(UXIUItem* ObjectToUnregister)
 {
 	if (IsUsingRegisteredSubObjectList() && IsValid(ObjectToUnregister))
 	{
 		ReplicatedObjects.Remove(ObjectToUnregister);
 		RemoveReplicatedSubObject(ObjectToUnregister);
+		if (GetOwner() && GetOwner()->HasAuthority()) ObjectToUnregister->DestroyObject();
 		return true;
 	}
 	return false;

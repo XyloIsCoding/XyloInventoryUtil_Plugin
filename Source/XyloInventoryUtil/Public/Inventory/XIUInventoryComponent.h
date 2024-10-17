@@ -458,11 +458,11 @@ public:
 public:
 	/** Register a Replicated UObjects to replicate
 	 * @param ObjectToRegister The Replicated UObject to register. */
-	virtual bool RegisterReplicatedObject(UPARAM(DisplayName = "Replicated UObject") UObject* ObjectToRegister);
+	virtual bool RegisterReplicatedObject(UPARAM(DisplayName = "Replicated UObject") UXIUItem* ObjectToRegister);
 
 	/** Unregister a Replicated UObject from replication
 	 * @param ObjectToUnregister The Replicated UObject to unregister. */
-	virtual bool UnregisterReplicatedObject(UPARAM(DisplayName = "Replicated UObject") UObject* ObjectToUnregister);
+	virtual bool UnregisterReplicatedObject(UPARAM(DisplayName = "Replicated UObject") UXIUItem* ObjectToUnregister);
 
 
 private:
