@@ -418,6 +418,7 @@ void FXIUInventoryList::RegisterSlotChange(const FXIUInventorySlot& Slot, const 
 		{
 			OwnerComponent->UnBindItemCountChangedDelegate(OldItem);
 			OwnerComponent->UnregisterReplicatedObject(OldItem);
+			if (OldItem->GetCount() == 0) OldItem->DestroyObject();
 		}
 	}
 }
@@ -517,7 +518,7 @@ void UXIUInventoryComponent::OnItemCountChanged(const FXIUItemCountChangeMessage
 	if (ItemSlot.GetItem())
 	{
 		bool bItemChanged = Change.Item->GetCount() == 0;
-		Inventory.RegisterSlotChange(ItemSlot, Change.OldCount, Change.Item->GetCount(), false, bItemChanged? Change.Item : nullptr);
+		Inventory.RegisterSlotChange(ItemSlot, Change.OldCount, Change.Item->GetCount(), bItemChanged, bItemChanged? Change.Item : nullptr);
 	}
 }
 

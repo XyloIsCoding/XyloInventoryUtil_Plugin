@@ -98,7 +98,6 @@ void UXIUItem::OnCreatedFromReplication()
 
 void UXIUItem::OnDestroyedFromReplication()
 {
-	const int OldCount = GetCount();
 	SetCount(0); // setting count to zero locally to signal that we are destroying the item (might have not replicated yet)
 }
 
