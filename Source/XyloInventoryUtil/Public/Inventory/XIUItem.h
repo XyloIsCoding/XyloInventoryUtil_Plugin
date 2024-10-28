@@ -124,14 +124,18 @@ public:
 private:
 	bool bItemInitialized;
 
-private:
-	UPROPERTY(Replicated)
-	UXIUItemDefinition* ItemDefinition;
 public:
 	UFUNCTION(BlueprintCallable, Category = "Item")
 	void SetItemDefinition(UXIUItemDefinition* InItemDefinition);
 	UFUNCTION(BlueprintCallable, Category = "Item")
 	UXIUItemDefinition* GetItemDefinition() const { return ItemDefinition; }
+protected:
+	UFUNCTION()
+	virtual void OnRepItemDefinition();
+private:
+	UPROPERTY(ReplicatedUsing = OnRepItemDefinition)
+	UXIUItemDefinition* ItemDefinition;
+	
 protected:
 	/** Called by SetItemDefinition */
 	virtual void OnItemInitialized();

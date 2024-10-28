@@ -121,6 +121,11 @@ void UXIUItem::SetItemDefinition(UXIUItemDefinition* InItemDefinition)
 		}
 	}
 	
+	OnRepItemDefinition();
+}
+
+void UXIUItem::OnRepItemDefinition()
+{
 	bItemInitialized = true;
 	OnItemInitialized();
 }
