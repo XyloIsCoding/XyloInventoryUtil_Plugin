@@ -34,6 +34,7 @@ struct FXIUItemCountChangeMessage
 	int32 OldCount = 0;
 };
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FXIUItemInitializedSignature, UXIUItem*, Item);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FXIUItemCountChangedSignature, const FXIUItemCountChangeMessage&, Change);
 
 
@@ -121,48 +122,9 @@ public:
 	 * Item
 	 */
 
-private:
-	bool bItemInitialized;
-
-public:
-	UFUNCTION(BlueprintCallable, Category = "Item")
-	void SetItemDefinition(UXIUItemDefinition* InItemDefinition);
-	UFUNCTION(BlueprintCallable, Category = "Item")
-	UXIUItemDefinition* GetItemDefinition() const { return ItemDefinition; }
-protected:
-	UFUNCTION()
-	virtual void OnRepItemDefinition();
-private:
-	UPROPERTY(ReplicatedUsing = OnRepItemDefinition)
-	UXIUItemDefinition* ItemDefinition;
-	
-protected:
-	/** Called by SetItemDefinition */
-	virtual void OnItemInitialized();
-	
-public:
-	UPROPERTY(BlueprintAssignable)
-	FXIUItemCountChangedSignature ItemCountChangedDelegate;
-
 public:
 	UFUNCTION(BlueprintCallable)
 	FString GetItemName() const;
-
-private:
-	UPROPERTY(ReplicatedUsing = OnRep_Count)
-	int Count = -1;
-	UFUNCTION()
-	void OnRep_Count(int OldCount);
-public:
-	/** @return item count */
-	UFUNCTION(BlueprintCallable)
-	int GetCount() const;
-	/** Set the count of the item */
-	UFUNCTION(BlueprintCallable)
-	void SetCount(int NewCount);
-	/** @return count added */
-	UFUNCTION(BlueprintCallable)
-	int ModifyCount(const int AddCount);
 
 public:
 	UFUNCTION(BlueprintCallable)
@@ -173,6 +135,65 @@ public:
 	virtual bool CanStack(UXIUItem* Item);
 	UFUNCTION(BlueprintCallable)
 	virtual UXIUItem* Duplicate(UObject* Outer);
-	
+	UFUNCTION(BlueprintCallable)
+	static bool IsItemAvailable(UXIUItem* Item);
 
+/*--------------------------------------------------------------------------------------------------------------------*/
+	/* Initialization */
+	
+public:
+	UPROPERTY(BlueprintAssignable)
+	FXIUItemInitializedSignature ItemInitializedDelegate;
+	bool IsItemInitialized() const;
+protected:
+	/** Called by SetItemDefinition */
+	virtual void OnItemInitialized();
+private:
+	void InitializeItem();
+	bool bItemInitialized = false;
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+	
+/*--------------------------------------------------------------------------------------------------------------------*/
+	/* ItemDefinition */
+
+public:
+	UFUNCTION(BlueprintCallable, Category = "Item")
+	void SetItemDefinition(UXIUItemDefinition* InItemDefinition);
+	UFUNCTION(BlueprintCallable, Category = "Item")
+	UXIUItemDefinition* GetItemDefinition() const { return ItemDefinition; }
+protected:
+	UFUNCTION()
+	virtual void OnRep_ItemDefinition();
+private:
+	UPROPERTY(ReplicatedUsing = OnRep_ItemDefinition)
+	UXIUItemDefinition* ItemDefinition;
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+	
+/*--------------------------------------------------------------------------------------------------------------------*/
+	/* Count */
+
+public:
+	UPROPERTY(BlueprintAssignable)
+	FXIUItemCountChangedSignature ItemCountChangedDelegate;
+public:
+	/** @return item count */
+	UFUNCTION(BlueprintCallable)
+	int GetCount() const;
+	/** Set the count of the item */
+	UFUNCTION(BlueprintCallable)
+	void SetCount(int32 NewCount);
+	/** @return count added */
+	UFUNCTION(BlueprintCallable)
+	int ModifyCount(const int AddCount);
+protected:
+	UFUNCTION()
+	virtual void OnRep_Count(int32 OldCount);
+private:
+	UPROPERTY(ReplicatedUsing = OnRep_Count)
+	int Count = -1;
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+	
 };

@@ -66,7 +66,7 @@ TObjectPtr<UXIUItem> FXIUInventorySlot::GetItemSafe() const
 
 bool FXIUInventorySlot::IsEmpty() const
 {
-	return Item == nullptr || Item->IsEmpty(); 
+	return !UXIUItem::IsItemAvailable(Item); 
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -409,11 +409,27 @@ void FXIUInventoryList::RegisterSlotChange(const FXIUInventorySlot& Slot, const 
 
 	if (bRegisterItemChange)
 	{
-		if (UXIUItem* NewItem = Slot.GetItemSafe())
+		// if new item is not initialized, we register it, and we bind the ItemInitialized to receive a change when it
+		// gets initialized.
+		// otherwise if the item is not empty, we register it and we bind the count changed delegate
+		if (UXIUItem* NewItem = Slot.GetItem())
 		{
-			OwnerComponent->BindItemCountChangedDelegate(NewItem);
-			OwnerComponent->RegisterReplicatedObject(NewItem);
+			if (!NewItem->IsItemInitialized())
+			{
+				OwnerComponent->RegisterReplicatedObject(NewItem);
+				OwnerComponent->BindItemInitializedDelegate(NewItem);
+			}
+			else
+			{
+				OwnerComponent->UnBindItemInitializedDelegate(NewItem);
+				if (!NewItem->IsEmpty())
+				{
+					OwnerComponent->RegisterReplicatedObject(NewItem);
+					OwnerComponent->BindItemCountChangedDelegate(NewItem);
+				}
+			}
 		}
+		// if the old item is valid, we unregister it and unbind the ItemCountChanged delegate
 		if (OldItem)
 		{
 			OwnerComponent->UnBindItemCountChangedDelegate(OldItem);
@@ -529,6 +545,36 @@ void UXIUInventoryComponent::BindItemCountChangedDelegate(const TObjectPtr<UXIUI
 void UXIUInventoryComponent::UnBindItemCountChangedDelegate(const TObjectPtr<UXIUItem> InItem)
 {
 	InItem->ItemCountChangedDelegate.RemoveDynamic(this, &ThisClass::OnItemCountChanged);
+}
+
+void UXIUInventoryComponent::OnItemInitialized(UXIUItem* InItem)
+{
+	checkf(InItem, TEXT("Item is null, which means something went really wrong"))
+	
+	FXIUInventorySlot ItemSlot;
+	for (const FXIUInventorySlot& Slot : Inventory.GetInventory())
+	{
+		if (Slot.GetItem() == InItem)
+		{
+			ItemSlot = Slot;
+			break;
+		}
+	}
+	
+	if (ItemSlot.GetItem())
+	{
+		Inventory.RegisterSlotChange(ItemSlot, 0, InItem->GetCount(), true, nullptr);
+	}
+}
+
+void UXIUInventoryComponent::BindItemInitializedDelegate(const TObjectPtr<UXIUItem> InItem)
+{
+	InItem->ItemInitializedDelegate.AddUniqueDynamic(this, &ThisClass::OnItemInitialized);
+}
+
+void UXIUInventoryComponent::UnBindItemInitializedDelegate(const TObjectPtr<UXIUItem> InItem)
+{
+	InItem->ItemInitializedDelegate.RemoveDynamic(this, &ThisClass::OnItemInitialized);
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -672,7 +718,7 @@ int UXIUInventoryComponent::CountItemsByDefinition(UXIUItemDefinition* ItemDefin
 	int Count = 0;
 	for (const FXIUInventorySlot& Slot : Inventory.GetInventory())
 	{
-		if (UXIUItem* Item = Slot.GetItem())
+		if (UXIUItem* Item = Slot.GetItemSafe())
 		{
 			if (Item->GetItemDefinition() == ItemDefinition) Count += Item->GetCount();
 		}

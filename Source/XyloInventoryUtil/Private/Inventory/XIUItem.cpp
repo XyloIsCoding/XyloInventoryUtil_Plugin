@@ -107,72 +107,14 @@ void UXIUItem::OnDestroyedFromReplication()
  * Item
  */
 
-void UXIUItem::SetItemDefinition(UXIUItemDefinition* InItemDefinition)
-{
-	checkf(InItemDefinition, TEXT("Item definition must be valid"))
-	checkf(!bItemInitialized, TEXT("Cannot reassign an item definition"))
-
-	ItemDefinition = InItemDefinition;
-	for (UXIUItemFragment* Fragment : ItemDefinition->Fragments)
-	{
-		if (Fragment != nullptr)
-		{
-			Fragment->OnInstanceCreated(this);
-		}
-	}
-	
-	OnRepItemDefinition();
-}
-
-void UXIUItem::OnRepItemDefinition()
-{
-	bItemInitialized = true;
-	OnItemInitialized();
-}
-
-void UXIUItem::OnItemInitialized()
-{
-}
-
-void UXIUItem::OnRep_Count(int OldCount)
-{
-	if (OldCount != -1) // avoid broadcast on first replication cause it happens on creation (UXIUInventoryFunctionLibrary::MakeItemFromDefault)
-	{
-		if (Count != OldCount) ItemCountChangedDelegate.Broadcast(FXIUItemCountChangeMessage(this, OldCount));
-	}
-}
-
 FString UXIUItem::GetItemName() const
 {
 	return ItemDefinition->ItemName;
 }
 
-int UXIUItem::GetCount() const
-{
-	return Count;
-}
-
-void UXIUItem::SetCount(int NewCount)
-{
-	const int OldCount = Count;
-	Count = FMath::Clamp(NewCount, 0, ItemDefinition->MaxCount);
-
-	OnRep_Count(OldCount);
-	//UE_LOG(LogTemp, Warning, TEXT("Set Count %i (requested %i. MaxCount %i)"), Count, NewCount, ItemDefinition->MaxCount)
-}
-
-int UXIUItem::ModifyCount(const int AddCount)
-{
-	const int OldCount = Count;
-	Count = FMath::Clamp(Count + AddCount, 0, ItemDefinition->MaxCount);
-
-	OnRep_Count(OldCount);
-	return Count - OldCount;
-}
-
 bool UXIUItem::IsEmpty() const
 {
-	return Count == 0;
+	return Count <= 0;
 }
 
 bool UXIUItem::IsFull() const
@@ -192,3 +134,94 @@ UXIUItem* UXIUItem::Duplicate(UObject* Outer)
 	return Item;
 }
 
+bool UXIUItem::IsItemAvailable(UXIUItem* Item)
+{
+	return Item && Item->IsItemInitialized() && !Item->IsEmpty();
+}
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+/* Initialization */
+
+bool UXIUItem::IsItemInitialized() const
+{
+	return bItemInitialized;
+}
+
+void UXIUItem::OnItemInitialized()
+{
+}
+
+void UXIUItem::InitializeItem()
+{
+	bItemInitialized = true;
+	OnItemInitialized();
+	ItemInitializedDelegate.Broadcast(this);
+}
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+	
+/*--------------------------------------------------------------------------------------------------------------------*/
+/* ItemDefinition */
+
+void UXIUItem::SetItemDefinition(UXIUItemDefinition* InItemDefinition)
+{
+	checkf(InItemDefinition, TEXT("Item definition must be valid"))
+	checkf(!bItemInitialized, TEXT("Cannot reassign an item definition"))
+
+	ItemDefinition = InItemDefinition;
+	for (UXIUItemFragment* Fragment : ItemDefinition->Fragments)
+	{
+		if (Fragment != nullptr)
+		{
+			Fragment->OnInstanceCreated(this);
+		}
+	}
+	
+	OnRep_ItemDefinition();
+}
+
+void UXIUItem::OnRep_ItemDefinition()
+{
+	InitializeItem();
+}
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+	
+/*--------------------------------------------------------------------------------------------------------------------*/
+/* Count */
+
+int UXIUItem::GetCount() const
+{
+	return Count;
+}
+
+void UXIUItem::SetCount(int32 NewCount)
+{
+	const int OldCount = Count;
+	Count = FMath::Clamp(NewCount, 0, ItemDefinition->MaxCount);
+
+	if (Count != OldCount)
+	{
+		OnRep_Count(OldCount);
+	}
+	//UE_LOG(LogTemp, Warning, TEXT("Set Count %i (requested %i. MaxCount %i)"), Count, NewCount, ItemDefinition->MaxCount)
+}
+
+int UXIUItem::ModifyCount(const int AddCount)
+{
+	const int OldCount = Count;
+	SetCount(Count + AddCount);
+	
+	return Count - OldCount;
+}
+
+void UXIUItem::OnRep_Count(int32 OldCount)
+{
+	if (OldCount != -1) // avoid broadcast on first replication cause it happens on creation (UXIUInventoryFunctionLibrary::MakeItemFromDefault)
+	{
+		ItemCountChangedDelegate.Broadcast(FXIUItemCountChangeMessage(this, OldCount));
+	}
+}
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+	

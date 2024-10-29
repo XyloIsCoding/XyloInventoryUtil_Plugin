@@ -361,7 +361,7 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Inventory")
 	FXIUInventoryChangedSignature InventoryChangedDelegate;
 private:
-	/* Calls Inventory.BroadcastChangeMessage
+	/** Calls Inventory.BroadcastChangeMessage
 	 * Manages the unbinding from item count change delegate in case the item count reaches zero */
 	UFUNCTION()
 	void OnItemCountChanged(const FXIUItemCountChangeMessage& Change);
@@ -369,6 +369,15 @@ public:
 	void BindItemCountChangedDelegate(const TObjectPtr<UXIUItem> InItem);
 	void UnBindItemCountChangedDelegate(const TObjectPtr<UXIUItem> InItem);
 
+private:
+	/** Calls Inventory.BroadcastChangeMessage */
+	UFUNCTION()
+	void OnItemInitialized(UXIUItem* InItem);
+public:
+	void BindItemInitializedDelegate(const TObjectPtr<UXIUItem> InItem);
+	void UnBindItemInitializedDelegate(const TObjectPtr<UXIUItem> InItem);
+	
+	
 /*--------------------------------------------------------------------------------------------------------------------*/
 
 	
