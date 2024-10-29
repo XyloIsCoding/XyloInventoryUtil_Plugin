@@ -162,9 +162,9 @@ void FXIUInventoryList::PostReplicatedChange(const TArrayView<int32> ChangedIndi
 	{
 		FXIUInventorySlot& Slot = Entries[Index];
 		check(Slot.LastObservedCount != INDEX_NONE);
-		
-		bool bItemChanged = Slot.LastObservedItem != Slot.GetItemSafe();
+
 		int NewCount = Slot.GetItem() ? Slot.GetItem()->GetCount() : 0;
+		bool bItemChanged = Slot.LastObservedItem != Slot.GetItem() || (Slot.LastObservedCount != 0 && NewCount == 0);
 		int OldCount = !bItemChanged ? Slot.LastObservedCount : 0;
 		RegisterSlotChange(Slot, OldCount, NewCount, bItemChanged, Slot.LastObservedItem.Get());
 		
@@ -405,13 +405,11 @@ int FXIUInventoryList::ConsumeItemByDefinition(const TObjectPtr<UXIUItemDefiniti
 
 void FXIUInventoryList::RegisterSlotChange(const FXIUInventorySlot& Slot, const int32 OldCount, const int32 NewCount, const bool bRegisterItemChange, const TObjectPtr<UXIUItem> OldItem)
 {
-	BroadcastChangeMessage(Slot, OldCount, NewCount, OldItem); 
-
 	if (bRegisterItemChange)
 	{
 		// if new item is not initialized, we register it, and we bind the ItemInitialized to receive a change when it
 		// gets initialized.
-		// otherwise if the item is not empty, we register it and we bind the count changed delegate
+		// otherwise if the item is not empty, we register it, and we bind the count changed delegate
 		if (UXIUItem* NewItem = Slot.GetItem())
 		{
 			if (!NewItem->IsItemInitialized())
@@ -429,6 +427,13 @@ void FXIUInventoryList::RegisterSlotChange(const FXIUInventorySlot& Slot, const 
 				}
 			}
 		}
+	}
+
+	// Broadcast change
+	BroadcastChangeMessage(Slot, OldCount, NewCount, OldItem); 
+
+	if (bRegisterItemChange)
+	{
 		// if the old item is valid, we unregister it and unbind the ItemCountChanged delegate
 		if (OldItem)
 		{
