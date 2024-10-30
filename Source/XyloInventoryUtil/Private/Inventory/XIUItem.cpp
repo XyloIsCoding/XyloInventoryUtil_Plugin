@@ -45,6 +45,7 @@ void UXIUItem::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetime
 		BPCClass->GetLifetimeBlueprintReplicationList(OutLifetimeProps);
 	}
 
+	DOREPLIFETIME_CONDITION(ThisClass, ItemInitializer, COND_InitialOnly);
 	DOREPLIFETIME(ThisClass, ItemDefinition);
 	DOREPLIFETIME(ThisClass, Count);
 }
@@ -147,15 +148,27 @@ bool UXIUItem::IsItemInitialized() const
 	return bItemInitialized;
 }
 
-void UXIUItem::OnItemInitialized()
+void UXIUItem::InitializeItem(const FXIUItemDefault& InItemInitializer)
 {
+	ItemInitializer = InItemInitializer;
 }
 
-void UXIUItem::InitializeItem()
+void UXIUItem::OnRep_ItemInitializer()
 {
+	InitializingItem();
+}
+
+void UXIUItem::InitializingItem()
+{
+	SetItemDefinition(ItemInitializer.ItemDefinition);
+	SetCount(ItemInitializer.Count);
 	bItemInitialized = true;
 	OnItemInitialized();
 	ItemInitializedDelegate.Broadcast(this);
+}
+
+void UXIUItem::OnItemInitialized()
+{
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -182,7 +195,6 @@ void UXIUItem::SetItemDefinition(UXIUItemDefinition* InItemDefinition)
 
 void UXIUItem::OnRep_ItemDefinition()
 {
-	InitializeItem();
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/

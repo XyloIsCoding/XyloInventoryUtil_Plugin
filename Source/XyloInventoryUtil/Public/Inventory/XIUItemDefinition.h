@@ -45,10 +45,10 @@ public:
 
 public:
 	UFUNCTION(BlueprintCallable, Category="Item")
-	UXIUItemFragment* FindFragmentByClass(const TSubclassOf<UXIUItemFragment> FragmentClass) const;
+	const UXIUItemFragment* FindFragmentByClass(const TSubclassOf<UXIUItemFragment> FragmentClass) const;
 
 	template <typename ResultClass>
-	ResultClass* FindFragmentByClass() const
+	const ResultClass* FindFragmentByClass() const
 	{
 		return (ResultClass*)FindFragmentByClass(ResultClass::StaticClass());
 	}

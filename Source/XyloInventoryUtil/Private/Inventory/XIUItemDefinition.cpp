@@ -13,11 +13,11 @@ UXIUItemDefinition::UXIUItemDefinition(const FObjectInitializer& ObjectInitializ
 	MaxCount = 1;
 }
 
-UXIUItemFragment* UXIUItemDefinition::FindFragmentByClass(const TSubclassOf<UXIUItemFragment> FragmentClass) const
+const UXIUItemFragment* UXIUItemDefinition::FindFragmentByClass(const TSubclassOf<UXIUItemFragment> FragmentClass) const
 {
 	if (FragmentClass != nullptr)
 	{
-		for (UXIUItemFragment* Fragment : Fragments)
+		for (const UXIUItemFragment* Fragment : Fragments)
 		{
 			if (Fragment && Fragment->IsA(FragmentClass))
 			{

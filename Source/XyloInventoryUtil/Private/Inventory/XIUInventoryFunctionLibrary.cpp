@@ -11,8 +11,7 @@ UXIUItem* UXIUInventoryFunctionLibrary::MakeItemFromDefault(UObject* Outer, FXIU
 	checkf(ItemDefault.ItemDefinition && ItemDefault.ItemDefinition->ItemClass, TEXT("Cannot make item of unset class"))
 	
 	UXIUItem* Item = NewObject<UXIUItem>(Outer, ItemDefault.ItemDefinition->ItemClass);
-	Item->SetItemDefinition(ItemDefault.ItemDefinition);
-	Item->SetCount(ItemDefault.Count);
+	Item->InitializeItem(ItemDefault);
 	return Item;
 }
 

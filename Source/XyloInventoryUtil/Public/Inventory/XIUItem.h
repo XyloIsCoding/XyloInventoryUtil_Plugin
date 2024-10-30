@@ -57,9 +57,27 @@ struct FXIUItemDefault
 	}
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	UXIUItemDefinition* ItemDefinition;
+	TObjectPtr<UXIUItemDefinition> ItemDefinition;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int Count;
+
+
+	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
+	{
+		Ar << ItemDefinition;
+		Ar << Count;
+		bOutSuccess = true;
+		return true;
+	}
+};
+
+template<>
+struct TStructOpsTypeTraits<FXIUItemDefault> : public TStructOpsTypeTraitsBase2<FXIUItemDefault>
+{
+	enum
+	{
+		WithNetSerializer = true
+	};
 };
 
 
@@ -140,18 +158,22 @@ public:
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 	/* Initialization */
-	
+
 public:
 	UPROPERTY(BlueprintAssignable)
 	FXIUItemInitializedSignature ItemInitializedDelegate;
 	bool IsItemInitialized() const;
+	void InitializeItem(const FXIUItemDefault& InItemInitializer);
 protected:
-	/** Called by SetItemDefinition */
+	UFUNCTION()
+	void OnRep_ItemInitializer();
+	void InitializingItem();
 	virtual void OnItemInitialized();
 private:
-	void InitializeItem();
 	bool bItemInitialized = false;
-
+	UPROPERTY(ReplicatedUsing = OnRep_ItemInitializer)
+	FXIUItemDefault ItemInitializer;
+	
 /*--------------------------------------------------------------------------------------------------------------------*/
 	
 /*--------------------------------------------------------------------------------------------------------------------*/
