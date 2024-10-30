@@ -46,8 +46,6 @@ void UXIUItem::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetime
 	}
 
 	DOREPLIFETIME_CONDITION(ThisClass, ItemInitializer, COND_InitialOnly);
-	DOREPLIFETIME(ThisClass, ItemDefinition);
-	DOREPLIFETIME(ThisClass, Count);
 }
 
 UWorld* UXIUItem::GetWorld() const
@@ -84,6 +82,11 @@ bool UXIUItem::CallRemoteFunction(UFunction* Function, void* Parms, FOutParmRec*
 		return true;
 	}
 	return false;
+}
+
+void UXIUItem::PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker)
+{
+	DOREPLIFETIME_ACTIVE_OVERRIDE(ThisClass, Count, bItemInitialized);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -151,6 +154,7 @@ bool UXIUItem::IsItemInitialized() const
 void UXIUItem::InitializeItem(const FXIUItemDefault& InItemInitializer)
 {
 	ItemInitializer = InItemInitializer;
+	OnRep_ItemInitializer();
 }
 
 void UXIUItem::OnRep_ItemInitializer()
@@ -163,6 +167,7 @@ void UXIUItem::InitializingItem()
 	SetItemDefinition(ItemInitializer.ItemDefinition);
 	SetCount(ItemInitializer.Count);
 	bItemInitialized = true;
+	
 	OnItemInitialized();
 	ItemInitializedDelegate.Broadcast(this);
 }
@@ -178,8 +183,8 @@ void UXIUItem::OnItemInitialized()
 
 void UXIUItem::SetItemDefinition(UXIUItemDefinition* InItemDefinition)
 {
-	checkf(InItemDefinition, TEXT("Item definition must be valid"))
 	checkf(!bItemInitialized, TEXT("Cannot reassign an item definition"))
+	checkf(InItemDefinition, TEXT("Item definition must be valid"))
 
 	ItemDefinition = InItemDefinition;
 	for (UXIUItemFragment* Fragment : ItemDefinition->Fragments)
@@ -189,12 +194,6 @@ void UXIUItem::SetItemDefinition(UXIUItemDefinition* InItemDefinition)
 			Fragment->OnInstanceCreated(this);
 		}
 	}
-	
-	OnRep_ItemDefinition();
-}
-
-void UXIUItem::OnRep_ItemDefinition()
-{
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/

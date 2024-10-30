@@ -161,7 +161,7 @@ void FXIUInventoryList::PostReplicatedChange(const TArrayView<int32> ChangedIndi
 	for (int32 Index : ChangedIndices)
 	{
 		FXIUInventorySlot& Slot = Entries[Index];
-		check(Slot.LastObservedCount != INDEX_NONE);
+		//check(Slot.LastObservedCount != INDEX_NONE);
 
 		int NewCount = Slot.GetItem() ? Slot.GetItem()->GetCount() : 0;
 		bool bItemChanged = Slot.LastObservedItem != Slot.GetItem() || (Slot.LastObservedCount != 0 && NewCount == 0);
@@ -496,6 +496,21 @@ void UXIUInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 
 	DOREPLIFETIME(ThisClass, Inventory);
 	DOREPLIFETIME(ThisClass, bInventoryInitialized);
+}
+
+void UXIUInventoryComponent::PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker)
+{
+	Super::PreReplication(ChangedPropertyTracker);
+
+	// Call PreReplication on all owned components that are replicated
+	for (UXIUItem* Item : ReplicatedObjects)
+	{
+		// Only call on components that aren't pending kill
+		if (IsValid(Item))
+		{
+			Item->PreReplication(ChangedPropertyTracker);
+		}
+	}
 }
 
 

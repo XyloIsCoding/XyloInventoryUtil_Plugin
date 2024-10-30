@@ -122,7 +122,8 @@ public:
 	virtual UWorld* GetWorld() const override;
 	virtual int32 GetFunctionCallspace(UFunction* Function, FFrame* Stack) override;
 	virtual bool CallRemoteFunction(UFunction* Function, void* Parms, struct FOutParmRec* OutParms, FFrame* Stack) override;
-
+public:
+	virtual void PreReplication(IRepChangedPropertyTracker & ChangedPropertyTracker);
 	
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -181,14 +182,11 @@ private:
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Item")
-	void SetItemDefinition(UXIUItemDefinition* InItemDefinition);
-	UFUNCTION(BlueprintCallable, Category = "Item")
 	UXIUItemDefinition* GetItemDefinition() const { return ItemDefinition; }
 protected:
-	UFUNCTION()
-	virtual void OnRep_ItemDefinition();
+	void SetItemDefinition(UXIUItemDefinition* InItemDefinition);
 private:
-	UPROPERTY(ReplicatedUsing = OnRep_ItemDefinition)
+	UPROPERTY()
 	UXIUItemDefinition* ItemDefinition;
 
 /*--------------------------------------------------------------------------------------------------------------------*/
