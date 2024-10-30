@@ -122,8 +122,6 @@ public:
 	virtual UWorld* GetWorld() const override;
 	virtual int32 GetFunctionCallspace(UFunction* Function, FFrame* Stack) override;
 	virtual bool CallRemoteFunction(UFunction* Function, void* Parms, struct FOutParmRec* OutParms, FFrame* Stack) override;
-public:
-	virtual void PreReplication(IRepChangedPropertyTracker & ChangedPropertyTracker);
 	
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -213,6 +211,7 @@ protected:
 private:
 	UPROPERTY(ReplicatedUsing = OnRep_Count)
 	int Count = -1;
+	int LastCount = -1;
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 	

@@ -46,6 +46,7 @@ void UXIUItem::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetime
 	}
 
 	DOREPLIFETIME_CONDITION(ThisClass, ItemInitializer, COND_InitialOnly);
+	DOREPLIFETIME(ThisClass, Count);
 }
 
 UWorld* UXIUItem::GetWorld() const
@@ -82,11 +83,6 @@ bool UXIUItem::CallRemoteFunction(UFunction* Function, void* Parms, FOutParmRec*
 		return true;
 	}
 	return false;
-}
-
-void UXIUItem::PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker)
-{
-	DOREPLIFETIME_ACTIVE_OVERRIDE(ThisClass, Count, bItemInitialized);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -165,6 +161,10 @@ void UXIUItem::OnRep_ItemInitializer()
 void UXIUItem::InitializingItem()
 {
 	SetItemDefinition(ItemInitializer.ItemDefinition);
+	if (GetOwningActor() && !GetOwningActor()->HasAuthority())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Cound DI sta cazzo di minchia bastarda laida locale : Setto da inizializzazione (Old %i)"), Count)
+	}
 	SetCount(ItemInitializer.Count);
 	bItemInitialized = true;
 	
@@ -210,11 +210,9 @@ void UXIUItem::SetCount(int32 NewCount)
 {
 	const int OldCount = Count;
 	Count = FMath::Clamp(NewCount, 0, ItemDefinition->MaxCount);
+	LastCount = OldCount; // TODO: Remove
 
-	if (Count != OldCount)
-	{
-		OnRep_Count(OldCount);
-	}
+	OnRep_Count(OldCount);
 	//UE_LOG(LogTemp, Warning, TEXT("Set Count %i (requested %i. MaxCount %i)"), Count, NewCount, ItemDefinition->MaxCount)
 }
 
@@ -228,10 +226,11 @@ int UXIUItem::ModifyCount(const int AddCount)
 
 void UXIUItem::OnRep_Count(int32 OldCount)
 {
-	if (OldCount != -1) // avoid broadcast on first replication cause it happens on creation (UXIUInventoryFunctionLibrary::MakeItemFromDefault)
+	if (GetOwningActor() && !GetOwningActor()->HasAuthority())
 	{
-		ItemCountChangedDelegate.Broadcast(FXIUItemCountChangeMessage(this, OldCount));
+		UE_LOG(LogTemp, Warning, TEXT("Cound DI sta cazzo di minchia bastarda laida locale : New %i ; Old %i ; check old %i" ), Count, OldCount, LastCount)
 	}
+	if (Count != OldCount) ItemCountChangedDelegate.Broadcast(FXIUItemCountChangeMessage(this, OldCount));
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/

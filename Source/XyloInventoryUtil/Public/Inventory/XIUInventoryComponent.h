@@ -323,7 +323,6 @@ protected:
 
 public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	virtual void PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker) override;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -478,9 +477,9 @@ public:
 private:
 	//All the currently replicated objects
 	UPROPERTY()
-	TArray<UXIUItem*> ReplicatedObjects;
+	TArray<UObject*> ReplicatedObjects;
 public:
 	//Get all the replicated objects that are registered on this component.
-	virtual TArray<UXIUItem*> GetRegisteredReplicatedObjects() { return ReplicatedObjects; }
+	virtual TArray<UObject*> GetRegisteredReplicatedObjects() { return ReplicatedObjects; }
 	
 };

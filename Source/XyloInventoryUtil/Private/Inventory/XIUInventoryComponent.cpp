@@ -498,21 +498,6 @@ void UXIUInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 	DOREPLIFETIME(ThisClass, bInventoryInitialized);
 }
 
-void UXIUInventoryComponent::PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker)
-{
-	Super::PreReplication(ChangedPropertyTracker);
-
-	// Call PreReplication on all owned components that are replicated
-	for (UXIUItem* Item : ReplicatedObjects)
-	{
-		// Only call on components that aren't pending kill
-		if (IsValid(Item))
-		{
-			Item->PreReplication(ChangedPropertyTracker);
-		}
-	}
-}
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -549,11 +534,20 @@ void UXIUInventoryComponent::OnItemCountChanged(const FXIUItemCountChangeMessage
 			break;
 		}
 	}
+
 	
 	if (ItemSlot.GetItem())
 	{
 		bool bItemChanged = Change.Item->GetCount() == 0;
-		Inventory.RegisterSlotChange(ItemSlot, Change.OldCount, Change.Item->GetCount(), bItemChanged, bItemChanged? Change.Item : nullptr);
+		if (GetOwner() && GetOwner()->HasAuthority())
+		{
+			Inventory.RegisterSlotChange(ItemSlot, Change.OldCount, Change.Item->GetCount(), bItemChanged, bItemChanged? Change.Item : nullptr);
+		}
+		else
+		{
+			TArray<int32> ChangedIndex = { ItemSlot.GetIndex() };
+			Inventory.PostReplicatedChange(ChangedIndex, Inventory.GetSize());
+		}
 	}
 }
 
@@ -583,7 +577,15 @@ void UXIUInventoryComponent::OnItemInitialized(UXIUItem* InItem)
 	
 	if (ItemSlot.GetItem())
 	{
-		Inventory.RegisterSlotChange(ItemSlot, 0, InItem->GetCount(), true, nullptr);
+		if (GetOwner() && GetOwner()->HasAuthority())
+		{
+			Inventory.RegisterSlotChange(ItemSlot, 0, InItem->GetCount(), true, nullptr);
+		}
+		else
+		{
+			TArray<int32> ChangedIndex = { ItemSlot.GetIndex() };
+			Inventory.PostReplicatedChange(ChangedIndex, Inventory.GetSize());
+		}
 	}
 }
 
