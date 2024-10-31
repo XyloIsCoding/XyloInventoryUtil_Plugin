@@ -108,6 +108,8 @@ public:
 	TObjectPtr<UXIUItem> GetItemSafe() const;
 	bool IsEmpty() const;
 
+	int32 GetItemCountSafe() const;
+
 	UPROPERTY(NotReplicated)
 	TSoftObjectPtr<UXIUItem> LastObservedItem = nullptr;
 	UPROPERTY(NotReplicated)

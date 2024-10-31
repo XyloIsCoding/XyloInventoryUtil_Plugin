@@ -69,6 +69,11 @@ bool FXIUInventorySlot::IsEmpty() const
 	return !UXIUItem::IsItemAvailable(Item); 
 }
 
+int32 FXIUInventorySlot::GetItemCountSafe() const
+{
+	return UXIUItem::IsItemInitialized(GetItem()) ? GetItem()->GetCount() : 0;
+}
+
 /*--------------------------------------------------------------------------------------------------------------------*/
 
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -134,7 +139,7 @@ void FXIUInventoryList::PreReplicatedRemove(const TArrayView<int32> RemovedIndic
 	{
 		FXIUInventorySlot& Slot = Entries[Index];
 		
-		int OldCount = Slot.GetItem() ? Slot.GetItem()->GetCount() : 0;
+		int OldCount = Slot.GetItemCountSafe();
 		RegisterSlotChange(Slot, OldCount, 0, true, Slot.GetItem());
 		
 		Slot.LastObservedCount = 0;
@@ -148,7 +153,7 @@ void FXIUInventoryList::PostReplicatedAdd(const TArrayView<int32> AddedIndices, 
 	{
 		FXIUInventorySlot& Slot = Entries[Index];
 		
-		int NewCount = Slot.GetItem() ? Slot.GetItem()->GetCount() : 0;
+		int NewCount = Slot.GetItemCountSafe();
 		RegisterSlotChange(Slot, 0, NewCount, true);
 		
 		Slot.LastObservedCount = NewCount;
@@ -161,9 +166,9 @@ void FXIUInventoryList::PostReplicatedChange(const TArrayView<int32> ChangedIndi
 	for (int32 Index : ChangedIndices)
 	{
 		FXIUInventorySlot& Slot = Entries[Index];
-		//check(Slot.LastObservedCount != INDEX_NONE);
+		check(Slot.LastObservedCount != INDEX_NONE);
 
-		int NewCount = Slot.GetItem() ? Slot.GetItem()->GetCount() : 0;
+		int NewCount = Slot.GetItemCountSafe();
 		bool bItemChanged = Slot.LastObservedItem != Slot.GetItem() || (Slot.LastObservedCount != 0 && NewCount == 0);
 		int OldCount = !bItemChanged ? Slot.LastObservedCount : 0;
 		RegisterSlotChange(Slot, OldCount, NewCount, bItemChanged, Slot.LastObservedItem.Get());
@@ -482,8 +487,6 @@ void UXIUInventoryComponent::BeginPlay()
 	{
 		Inventory.InitInventory(FMath::Max(InventorySize, DefaultItems.Num()));
 		ApplySettingsToSlots();
-		InputAddDefaultItems();
-
 		SetInventoryInitialized(true);
 	}
 }

@@ -93,6 +93,11 @@ bool UXIUItem::IsItemAvailable(UXIUItem* Item)
 	return Item && Item->IsItemInitialized() && !Item->IsEmpty();
 }
 
+bool UXIUItem::IsItemInitialized(UXIUItem* Item)
+{
+	return Item && Item->IsItemInitialized();
+}
+
 /*--------------------------------------------------------------------------------------------------------------------*/
 /* Initialization */
 
@@ -184,7 +189,11 @@ void UXIUItem::OnRep_Count(int32 OldCount)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Cound DI sta cazzo di minchia bastarda laida locale : New %i ; Old %i ; check old %i" ), Count, OldCount, LastCount)
 	}
-	if (Count != OldCount) ItemCountChangedDelegate.Broadcast(FXIUItemCountChangeMessage(this, OldCount));
+	// checking OldCount != -1 allow to block execution if it is the first count replication
+	if (bItemInitialized && OldCount != -1) 
+	{
+		if (Count != OldCount) ItemCountChangedDelegate.Broadcast(FXIUItemCountChangeMessage(this, OldCount));
+	}
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/

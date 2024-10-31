@@ -85,8 +85,9 @@ struct TStructOpsTypeTraits<FXIUItemDefault> : public TStructOpsTypeTraitsBase2<
 
 
 /**
- * only use UXIUInventoryFunctionLibrary::MakeItemFromDefault to create a Item object
- * if IsEmpty() returns false, do not use this item. consider it as nullptr.
+ * only use UXIUInventoryFunctionLibrary::MakeItemFromDefault to create an Item object
+ * if IsEmpty() || !IsItemInitialized(), do not use this item. consider it as nullptr.
+ * you can use the static function IsItemAvailable(Item) to make sure you can use the item.
  */ 
 UCLASS(Blueprintable, BlueprintType, Abstract)
 class XYLOINVENTORYUTIL_API UXIUItem : public UXROUReplicatedObject
@@ -142,8 +143,11 @@ public:
 	virtual bool CanStack(UXIUItem* Item);
 	UFUNCTION(BlueprintCallable)
 	virtual UXIUItem* Duplicate(UObject* Outer);
+
 	UFUNCTION(BlueprintCallable)
 	static bool IsItemAvailable(UXIUItem* Item);
+	UFUNCTION(BlueprintCallable)
+	static bool IsItemInitialized(UXIUItem* Item);
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 	/* Initialization */
