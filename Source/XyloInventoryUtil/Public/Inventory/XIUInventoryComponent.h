@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "XIUItem.h"
+#include "XROUObjectReplicatorComponent.h"
 #include "Components/ActorComponent.h"
 #include "Net/Serialization/FastArraySerializer.h"
 #include "XIUInventoryComponent.generated.h"
@@ -304,7 +305,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FXIUInventoryInitializedSignature);
  * Manages an inventory of fixed size.
  */
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class XYLOINVENTORYUTIL_API UXIUInventoryComponent : public UActorComponent
+class XYLOINVENTORYUTIL_API UXIUInventoryComponent : public UXROUObjectReplicatorComponent
 {
 	GENERATED_BODY()
 
@@ -457,29 +458,5 @@ public:
 	UFUNCTION(BlueprintCallable, Category= "Inventory")
 	UXIUItem* GetItemAtSlot(const int SlotIndex);
 	
-	
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-	/*
-	 * SubObjects Replication
-	 */
-	
-public:
-	/** Register a Replicated UObjects to replicate
-	 * @param ObjectToRegister The Replicated UObject to register. */
-	virtual bool RegisterReplicatedObject(UPARAM(DisplayName = "Replicated UObject") UXIUItem* ObjectToRegister);
-
-	/** Unregister a Replicated UObject from replication
-	 * @param ObjectToUnregister The Replicated UObject to unregister. */
-	virtual bool UnregisterReplicatedObject(UPARAM(DisplayName = "Replicated UObject") UXIUItem* ObjectToUnregister);
-
-
-private:
-	//All the currently replicated objects
-	UPROPERTY()
-	TArray<UObject*> ReplicatedObjects;
-public:
-	//Get all the replicated objects that are registered on this component.
-	virtual TArray<UObject*> GetRegisteredReplicatedObjects() { return ReplicatedObjects; }
 	
 };

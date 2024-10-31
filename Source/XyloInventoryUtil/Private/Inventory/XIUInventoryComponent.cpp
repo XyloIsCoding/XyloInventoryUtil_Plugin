@@ -438,7 +438,7 @@ void FXIUInventoryList::RegisterSlotChange(const FXIUInventorySlot& Slot, const 
 		if (OldItem)
 		{
 			OwnerComponent->UnBindItemCountChangedDelegate(OldItem);
-			OwnerComponent->UnregisterReplicatedObject(OldItem);
+			OwnerComponent->UnregisterReplicatedObject(OldItem, true);
 		}
 	}
 }
@@ -464,9 +464,7 @@ UXIUInventoryComponent::UXIUInventoryComponent(const FObjectInitializer& ObjectI
 	: Super(ObjectInitializer)
 	, Inventory(this)
 {
-	PrimaryComponentTick.bCanEverTick = false;
-	SetIsReplicatedByDefault(true);
-	bReplicateUsingRegisteredSubObjectList = true;
+	InventorySize = 1;	
 }
 
 
@@ -762,32 +760,3 @@ UXIUItem* UXIUInventoryComponent::GetItemAtSlot(const int SlotIndex)
 	return Inventory.GetItemAtSlot(SlotIndex);
 }
 
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/*
- * SubObjects Replication
- */
-
-bool UXIUInventoryComponent::RegisterReplicatedObject(UXIUItem* ObjectToRegister)
-{
-	if (IsUsingRegisteredSubObjectList() && IsReadyForReplication() && IsValid(ObjectToRegister))
-	{
-		ReplicatedObjects.AddUnique(ObjectToRegister);
-		AddReplicatedSubObject(ObjectToRegister);
-		return true;
-	}
-	return false;
-}
-
-bool UXIUInventoryComponent::UnregisterReplicatedObject(UXIUItem* ObjectToUnregister)
-{
-	if (IsUsingRegisteredSubObjectList() && IsValid(ObjectToUnregister))
-	{
-		ReplicatedObjects.Remove(ObjectToUnregister);
-		RemoveReplicatedSubObject(ObjectToUnregister);
-		if (GetOwner() && GetOwner()->HasAuthority()) ObjectToUnregister->DestroyObject();
-		return true;
-	}
-	return false;
-}
