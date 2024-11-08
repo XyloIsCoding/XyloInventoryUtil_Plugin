@@ -120,10 +120,6 @@ void UXIUItem::OnRep_ItemInitializer()
 void UXIUItem::InitializingItem()
 {
 	SetItemDefinition(ItemInitializer.ItemDefinition);
-	if (GetOwningActor() && !GetOwningActor()->HasAuthority())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Cound DI sta cazzo di minchia bastarda laida locale : Setto da inizializzazione (Old %i)"), Count)
-	}
 	SetCount(ItemInitializer.Count);
 	bItemInitialized = true;
 	
@@ -185,10 +181,6 @@ int UXIUItem::ModifyCount(const int AddCount)
 
 void UXIUItem::OnRep_Count(int32 OldCount)
 {
-	if (GetOwningActor() && !GetOwningActor()->HasAuthority())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Cound DI sta cazzo di minchia bastarda laida locale : New %i ; Old %i ; check old %i" ), Count, OldCount, LastCount)
-	}
 	// checking OldCount != -1 allow to block execution if it is the first count replication
 	if (bItemInitialized && OldCount != -1) 
 	{
