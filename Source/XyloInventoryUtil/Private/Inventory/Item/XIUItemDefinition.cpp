@@ -1,7 +1,7 @@
 // Copyright XyloIsCoding 2024
 
 
-#include "Inventory/XIUItemDefinition.h"
+#include "Inventory/Item/XIUItemDefinition.h"
 
 void UXIUItemFragment::OnInstanceCreated_Implementation(UXIUItem* Item) const
 {

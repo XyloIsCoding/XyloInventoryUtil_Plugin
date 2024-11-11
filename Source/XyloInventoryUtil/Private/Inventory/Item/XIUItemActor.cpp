@@ -1,7 +1,7 @@
 // Copyright XyloIsCoding 2024
 
 
-#include "Inventory/XIUItemActor.h"
+#include "Inventory/Item/XIUItemActor.h"
 
 #include "Inventory/XIUInventoryComponent.h"
 #include "Inventory/XIUInventoryFunctionLibrary.h"

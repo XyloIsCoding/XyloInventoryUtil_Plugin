@@ -4,8 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "XIUItem.h"
-#include "XIUPickUpInterface.h"
 #include "GameFramework/Actor.h"
+#include "Inventory/XIUPickUpInterface.h"
 #include "XIUItemActor.generated.h"
 
 UCLASS()

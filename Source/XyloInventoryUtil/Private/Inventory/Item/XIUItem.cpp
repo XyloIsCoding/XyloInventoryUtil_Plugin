@@ -1,10 +1,10 @@
 // Copyright XyloIsCoding 2024
 
 
-#include "Inventory/XIUItem.h"
+#include "Inventory/Item/XIUItem.h"
 
 #include "Inventory/XIUInventoryFunctionLibrary.h"
-#include "Inventory/XIUItemDefinition.h"
+#include "Inventory/Item/XIUItemDefinition.h"
 #include "Net/UnrealNetwork.h"
 
 

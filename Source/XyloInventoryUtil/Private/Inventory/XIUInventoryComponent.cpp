@@ -4,8 +4,8 @@
 #include "Inventory/XIUInventoryComponent.h"
 
 #include "Inventory/XIUInventoryFunctionLibrary.h"
-#include "Inventory/XIUItemActor.h"
-#include "Inventory/XIUItemDefinition.h"
+#include "Inventory/Item/XIUItemActor.h"
+#include "Inventory/Item/XIUItemDefinition.h"
 #include "Net/UnrealNetwork.h"
 
 

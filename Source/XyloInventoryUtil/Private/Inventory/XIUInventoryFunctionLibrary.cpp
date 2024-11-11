@@ -3,7 +3,7 @@
 
 #include "Inventory/XIUInventoryFunctionLibrary.h"
 #include "Inventory/XIUInventoryComponent.h"
-#include "Inventory/XIUItemDefinition.h"
+#include "Inventory/Item/XIUItemDefinition.h"
 
 
 UXIUItem* UXIUInventoryFunctionLibrary::MakeItemFromDefault(UObject* Outer, FXIUItemDefault ItemDefault)

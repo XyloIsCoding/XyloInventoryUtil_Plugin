@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "XROUReplicatedObject.h"
-#include "Interfaces/Interface_ActorSubobject.h"
 #include "UObject/Object.h"
 #include "XIUItem.generated.h"
 

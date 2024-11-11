@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "XIUItem.h"
+#include "Inventory/Item/XIUItem.h"
 #include "XROUObjectReplicatorComponent.h"
 #include "Components/ActorComponent.h"
 #include "Net/Serialization/FastArraySerializer.h"
