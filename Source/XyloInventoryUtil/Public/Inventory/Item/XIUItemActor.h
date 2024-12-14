@@ -14,7 +14,7 @@ class XYLOINVENTORYUTIL_API AXIUItemActor : public AActor, public IXIUPickUpInte
 	GENERATED_BODY()
 	
 public:	
-	AXIUItemActor();
+	AXIUItemActor(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -68,7 +68,7 @@ protected:
 	void OnRep_Item(UXIUItem* OldItem);
 protected:
 	virtual void ItemSet();
-	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "ItemSet"))
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "Item Set"))
 	void BP_ItemSet();
 
 /*--------------------------------------------------------------------------------------------------------------------*/

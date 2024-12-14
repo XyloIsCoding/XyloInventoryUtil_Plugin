@@ -7,7 +7,8 @@
 #include "Inventory/XIUInventoryFunctionLibrary.h"
 #include "Net/UnrealNetwork.h"
 
-AXIUItemActor::AXIUItemActor()
+AXIUItemActor::AXIUItemActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bReplicates = true;
 	PrimaryActorTick.bCanEverTick = false;
