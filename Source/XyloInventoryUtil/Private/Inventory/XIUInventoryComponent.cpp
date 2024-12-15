@@ -691,7 +691,7 @@ void UXIUInventoryComponent::TransferItemFromSlot(int SlotIndex, UXIUInventoryCo
 	}
 }
 
-AXIUItemActor* UXIUInventoryComponent::DropItemAtSlot(const FTransform& DropTransform, const int SlotIndex, const int Count, const TSubclassOf<AXIUItemActor> ItemActorClass)
+AXIUItemActor* UXIUInventoryComponent::DropItemAtSlot(const FTransform& DropTransform, const int SlotIndex, const int Count, const TSubclassOf<AXIUItemActor> ItemActorClass, const bool bFinishSpawning)
 {
 	if (!GetOwner() || !GetOwner()->HasAuthority() || Count == 0) return nullptr;
 
@@ -712,7 +712,11 @@ AXIUItemActor* UXIUInventoryComponent::DropItemAtSlot(const FTransform& DropTran
 				ItemToDrop->ModifyCount(-CountToDrop);
 			}
 			else ItemToDrop->SetCount(0); // Count = -1 so we dropped everything
-			
+
+			if (bFinishSpawning)
+			{
+				DroppedItemActor->FinishSpawning(DropTransform);
+			}
 			return DroppedItemActor;
 		}
 	}

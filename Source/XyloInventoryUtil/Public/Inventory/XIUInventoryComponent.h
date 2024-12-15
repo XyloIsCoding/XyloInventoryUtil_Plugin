@@ -437,10 +437,11 @@ public:
 	 * @param SlotIndex: index of the slot to drop the item from
 	 * @param Count: count to drop of that item (if -1 drops all)
 	 * @param ItemActorClass: class of the item actor. If not specified, DefaultItemActorClass is used
+	 * @param bFinishSpawning: if true, spawns the dropped item actor
 	 * @return pointer to the item actor. FinishSpawning must be called
 	 */
 	UFUNCTION(BlueprintCallable, Category= "Inventory")
-	AXIUItemActor* DropItemAtSlot(const FTransform& DropTransform, const int SlotIndex, const int Count = -1, const TSubclassOf<AXIUItemActor> ItemActorClass = nullptr);
+	AXIUItemActor* DropItemAtSlot(const FTransform& DropTransform, const int SlotIndex, const int Count = -1, const TSubclassOf<AXIUItemActor> ItemActorClass = nullptr, const bool bFinishSpawning = false);
 
 	/** @return number of items actually consumed */
 	UFUNCTION(BlueprintCallable, Category= "Inventory")
