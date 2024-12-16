@@ -112,9 +112,15 @@ void FXIUInventorySlot::SetLocked(bool NewLock)
 bool FXIUInventorySlot::CanInsertItem(const TObjectPtr<UXIUItem> TestItem) const
 {
 	if (IsLocked()) return false;
-	if (IsEmpty() && MatchesFilter(TestItem)) return true;
+	if (IsEmpty()) return MatchesFilter(TestItem);
 	if (!Item->IsFull() && Item->CanStack(TestItem)) return true;
 	return false;
+}
+
+void FXIUInventorySlot::ApplySettings(const FXIUInventorySlotSettings& SlotSettings)
+{
+	Filter = SlotSettings.Filter;
+	bLocked = SlotSettings.bLocked;
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -224,6 +230,17 @@ void FXIUInventoryList::InitInventory(int Size)
 		MarkItemDirty(NewSlot);
 		RegisterSlotChange(NewSlot, 0, 0, true);
 	}
+}
+
+void FXIUInventoryList::AddSlot(const FXIUInventorySlotSettings& SlotSettings)
+{
+	check(CanManipulateInventory());
+
+	FXIUInventorySlot& NewSlot = Entries.AddDefaulted_GetRef();
+	NewSlot.Index = Entries.Num() - 1; // we can never remove slots, so indexes are for sure progressive
+	NewSlot.ApplySettings(SlotSettings);
+	MarkItemDirty(NewSlot);
+	RegisterSlotChange(NewSlot, 0, 0, true);
 }
 
 int FXIUInventoryList::AddItemDefault(FXIUItemDefault ItemDefault, TArray<TObjectPtr<UXIUItem>>& AddedItems)
@@ -469,7 +486,8 @@ UXIUInventoryComponent::UXIUInventoryComponent(const FObjectInitializer& ObjectI
 	: Super(ObjectInitializer)
 	, Inventory(this)
 {
-	InventorySize = 1;	
+	InventorySize = 1;
+	bManualInitialization = false;
 }
 
 
@@ -485,8 +503,14 @@ void UXIUInventoryComponent::BeginPlay()
 
 	if (GetOwner()->HasAuthority())
 	{
-		Inventory.InitInventory(FMath::Max(InventorySize, DefaultItems.Num()));
-		ApplySettingsToSlots();
+		if (bManualInitialization)
+		{
+			ManualInitialization();
+		}
+		else
+		{
+			Inventory.InitInventory(InventorySize);
+		}
 		SetInventoryInitialized(true);
 	}
 }
@@ -602,10 +626,18 @@ void UXIUInventoryComponent::UnBindItemInitializedDelegate(const TObjectPtr<UXIU
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 
-
-void UXIUInventoryComponent::ApplySettingsToSlots()
+void UXIUInventoryComponent::ManualInitialization()
 {
-	
+	ManualInitializationDelegate.Broadcast();
+	// to be implemented in child classes
+}
+
+void UXIUInventoryComponent::AddSlot(const FXIUInventorySlotSettings& SlotSettings)
+{
+	if (GetOwner() && GetOwner()->HasAuthority())
+	{
+		Inventory.AddSlot(SlotSettings);
+	}
 }
 
 void UXIUInventoryComponent::InputAddDefaultItems()

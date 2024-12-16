@@ -48,8 +48,20 @@ struct FXIUInventorySlotChangeMessage
 	bool bLocked = false;
 };
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FXIUInventoryChangedSignature, const FXIUInventorySlotChangeMessage&, Change);
+USTRUCT(BlueprintType)
+struct FXIUInventorySlotSettings
+{
+	GENERATED_BODY()
 
+	UPROPERTY(BlueprintReadWrite)
+	TSubclassOf<UXIUItem> Filter;
+
+	UPROPERTY(BlueprintReadWrite)
+	bool bLocked = false;
+};
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FXIUInventoryChangedSignature, const FXIUInventorySlotChangeMessage&, Change);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FXIUInventoryManualInitializationSignature);
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -148,7 +160,8 @@ public:
 
 public:
 	bool CanInsertItem(const TObjectPtr<UXIUItem> TestItem) const;
-
+	void ApplySettings(const FXIUInventorySlotSettings& SlotSettings);
+	
 /*--------------------------------------------------------------------------------------------------------------------*/
 
 	
@@ -227,6 +240,7 @@ public:
 	
 public:
 	void InitInventory(int Size);
+	void AddSlot(const FXIUInventorySlotSettings& SlotSettings);
 	
 public:
 	/** Add a default item
@@ -383,26 +397,35 @@ public:
 	
 /*--------------------------------------------------------------------------------------------------------------------*/
 
-	
+public:
+	/** Only use this delegate to set up slots. Do not add items here, since AddDefaultItems has not been called yet.
+	 * Use InventoryInitializedDelegate to add or manipulate items. */
+	UPROPERTY(BlueprintAssignable, Category= "Inventory")
+	FXIUInventoryManualInitializationSignature ManualInitializationDelegate;
+	UFUNCTION(BlueprintCallable, Category= "Inventory")
+	virtual void AddSlot(const FXIUInventorySlotSettings& SlotSettings);
+protected:
+	/** function to set up the slots. should not be used to add items, since it is called before AddDefaultItems.
+	 * Override in child class to implement. */
+	virtual void ManualInitialization();
 private:
  	UPROPERTY(Replicated)
  	FXIUInventoryList Inventory;
+	/** Size of the inventory if bManualInitialization is false */
 	UPROPERTY(EditAnywhere, Category = "Inventory")
 	int InventorySize;
-private:
-	/** function to set up the slots. should not be used to add items, since it is called before AddDefaultItems
-	 * Override in child class to implement. */
-	virtual void ApplySettingsToSlots();
+	UPROPERTY(EditAnywhere, Category = "Inventory")
+	bool bManualInitialization;
 
-private:
-	UPROPERTY(EditAnywhere, Category= "Inventory")
-	TArray<FXIUItemDefault> DefaultItems;
 public:
 	UFUNCTION(BlueprintCallable, Category= "Inventory")
 	void InputAddDefaultItems();
 	UFUNCTION(Server, Reliable, Category= "Inventory")
 	void ServerAddDefaultItemsRPC();
 	void AddDefaultItems();
+private:
+	UPROPERTY(EditAnywhere, Category= "Inventory")
+	TArray<FXIUItemDefault> DefaultItems;
 
 private:
 	/** Default class used to drop items */
