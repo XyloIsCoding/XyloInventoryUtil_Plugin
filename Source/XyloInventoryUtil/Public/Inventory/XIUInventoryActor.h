@@ -46,7 +46,7 @@ public:
 	 */
 
 public:
-	virtual UXIUInventoryComponent* GetInventoryComponent_Implementation() override { return InventoryComponent; }
+	virtual UXIUInventoryComponent* GetInventoryComponent_Implementation() const override { return InventoryComponent; }
 	
 private:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess))
