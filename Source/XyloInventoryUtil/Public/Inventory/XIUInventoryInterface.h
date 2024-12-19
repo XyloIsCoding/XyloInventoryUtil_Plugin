@@ -25,4 +25,5 @@ class XYLOINVENTORYUTIL_API IXIUInventoryInterface
 public:
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Item")
 	UXIUInventoryComponent* GetInventoryComponent() const;
+	virtual UXIUInventoryComponent* GetInventoryComponent_Implementation() const = 0;
 };

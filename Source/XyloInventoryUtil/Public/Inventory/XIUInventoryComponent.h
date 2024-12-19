@@ -283,7 +283,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FXIUInventoryInitializedSignature);
 /**
  * Manages an inventory of fixed size.
  */
-UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
+UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent), BlueprintType, Blueprintable)
 class XYLOINVENTORYUTIL_API UXIUInventoryComponent : public UXROUObjectReplicatorComponent
 {
 	GENERATED_BODY()
@@ -312,17 +312,19 @@ public:
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 	/* Delegates */
-	
-private:
-	UPROPERTY(ReplicatedUsing = OnRep_InventoryInitialized)
-	bool bInventoryInitialized = false;
+
+public:
+	UPROPERTY(BlueprintAssignable, Category = "Inventory")
+	FXIUInventoryInitializedSignature InventoryInitializedDelegate;
 protected:
 	void SetInventoryInitialized(bool bInitialized);
 	UFUNCTION()
 	void OnRep_InventoryInitialized();
-public:
-	UPROPERTY(BlueprintAssignable, Category = "Inventory")
-	FXIUInventoryInitializedSignature InventoryInitializedDelegate;
+	UFUNCTION(BlueprintImplementableEvent, Category= "Inventory", DisplayName = "OnInventoryInitialized")
+	void BP_OnInventoryInitialized();
+private:
+	UPROPERTY(ReplicatedUsing = OnRep_InventoryInitialized)
+	bool bInventoryInitialized = false;
 
 public:
 	/** PROBABLY SPAGHETTI CODE WARNING!!!
@@ -340,14 +342,19 @@ public:
 	 */
 	UPROPERTY(BlueprintAssignable, Category = "Inventory")
 	FXIUInventoryChangedSignature InventoryChangedDelegate;
+	virtual void BroadcastInventoryChanged(const FXIUInventorySlotChangeMessage& Message);
+protected:
+	UFUNCTION(BlueprintImplementableEvent, Category= "Inventory", DisplayName = "OnInventoryChanged")
+	void BP_OnInventoryChanged();
+
+public:
+	void BindItemCountChangedDelegate(const TObjectPtr<UXIUItem> InItem);
+	void UnBindItemCountChangedDelegate(const TObjectPtr<UXIUItem> InItem);
 private:
 	/** Calls Inventory.BroadcastChangeMessage
 	 * Manages the unbinding from item count change delegate in case the item count reaches zero */
 	UFUNCTION()
 	void OnItemCountChanged(const FXIUItemCountChangeMessage& Change);
-public:
-	void BindItemCountChangedDelegate(const TObjectPtr<UXIUItem> InItem);
-	void UnBindItemCountChangedDelegate(const TObjectPtr<UXIUItem> InItem);
 
 private:
 	/** Calls Inventory.BroadcastChangeMessage */
@@ -371,6 +378,8 @@ protected:
 	/** function to set up the slots. should not be used to add items, since it is called before AddDefaultItems.
 	 * Override in child class to implement. */
 	virtual void ManualInitialization();
+	UFUNCTION(BlueprintImplementableEvent, Category= "Inventory", DisplayName = "OnManualInitialization")
+	void BP_OnManualInitialization();
 private:
  	UPROPERTY(Replicated)
  	FXIUInventoryList Inventory;
@@ -449,3 +458,4 @@ public:
 	
 	
 };
+

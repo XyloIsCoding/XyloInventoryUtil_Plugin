@@ -203,7 +203,7 @@ void FXIUInventoryList::BroadcastChangeMessage(const FXIUInventorySlot& Entry, c
 	Message.Filter = Entry.Filter;
 	Message.bLocked = Entry.bLocked;
 
-	if (OwnerComponent) OwnerComponent->InventoryChangedDelegate.Broadcast(Message);
+	if (OwnerComponent) OwnerComponent->BroadcastInventoryChanged(Message);
 }
 
 bool FXIUInventoryList::CanManipulateInventory() const
@@ -511,6 +511,7 @@ void UXIUInventoryComponent::BeginPlay()
 		{
 			Inventory.InitInventory(InventorySize);
 		}
+		AddDefaultItems();
 		SetInventoryInitialized(true);
 	}
 }
@@ -543,7 +544,27 @@ void UXIUInventoryComponent::SetInventoryInitialized(bool bInitialized)
 
 void UXIUInventoryComponent::OnRep_InventoryInitialized()
 {
-	if (bInventoryInitialized) InventoryInitializedDelegate.Broadcast();
+	if (bInventoryInitialized)
+	{
+		BP_OnInventoryInitialized();
+		InventoryInitializedDelegate.Broadcast();
+	}
+}
+
+void UXIUInventoryComponent::BroadcastInventoryChanged(const FXIUInventorySlotChangeMessage& Message)
+{
+	BP_OnInventoryChanged();
+	InventoryChangedDelegate.Broadcast(Message);
+}
+
+void UXIUInventoryComponent::BindItemCountChangedDelegate(const TObjectPtr<UXIUItem> InItem)
+{
+	InItem->ItemCountChangedDelegate.AddUniqueDynamic(this, &ThisClass::OnItemCountChanged);
+}
+
+void UXIUInventoryComponent::UnBindItemCountChangedDelegate(const TObjectPtr<UXIUItem> InItem)
+{
+	InItem->ItemCountChangedDelegate.RemoveDynamic(this, &ThisClass::OnItemCountChanged);
 }
 
 void UXIUInventoryComponent::OnItemCountChanged(const FXIUItemCountChangeMessage& Change)
@@ -574,16 +595,6 @@ void UXIUInventoryComponent::OnItemCountChanged(const FXIUItemCountChangeMessage
 			Inventory.PostReplicatedChange(ChangedIndex, Inventory.GetSize());
 		}
 	}
-}
-
-void UXIUInventoryComponent::BindItemCountChangedDelegate(const TObjectPtr<UXIUItem> InItem)
-{
-	InItem->ItemCountChangedDelegate.AddUniqueDynamic(this, &ThisClass::OnItemCountChanged);
-}
-
-void UXIUInventoryComponent::UnBindItemCountChangedDelegate(const TObjectPtr<UXIUItem> InItem)
-{
-	InItem->ItemCountChangedDelegate.RemoveDynamic(this, &ThisClass::OnItemCountChanged);
 }
 
 void UXIUInventoryComponent::OnItemInitialized(UXIUItem* InItem)
@@ -628,6 +639,7 @@ void UXIUInventoryComponent::UnBindItemInitializedDelegate(const TObjectPtr<UXIU
 
 void UXIUInventoryComponent::ManualInitialization()
 {
+	BP_OnManualInitialization();
 	ManualInitializationDelegate.Broadcast();
 	// to be implemented in child classes
 }
@@ -733,6 +745,7 @@ AXIUItemActor* UXIUInventoryComponent::DropItemAtSlot(const FTransform& DropTran
 		{
 			const TSubclassOf<AXIUItemActor> DropActorClass = ItemActorClass ? ItemActorClass : DefaultItemActorClass;
 			AXIUItemActor* DroppedItemActor = World->SpawnActorDeferred<AXIUItemActor>(DropActorClass , DropTransform);
+			if (!DroppedItemActor) return nullptr;
 			DroppedItemActor->SetItem(ItemToDrop);
 
 			if (Count > 0)
