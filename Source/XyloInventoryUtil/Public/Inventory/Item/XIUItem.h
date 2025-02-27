@@ -112,23 +112,14 @@ public:
 	 */
 
 public:
-	virtual void DestroyObject() override;
-	
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	virtual void OnDestroyed() override;
 
-	/*
-	 * IInterface_ActorSubobject Interface
-	 */
-
-public:
-	virtual void OnDestroyedFromReplication() override;
-	
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	/*
 	 * Item
 	 */
-
+	
 public:
 	UFUNCTION(BlueprintCallable)
 	FString GetItemName() const;
@@ -161,8 +152,12 @@ protected:
 	void OnRep_ItemInitializer();
 	void InitializingItem();
 	virtual void OnItemInitialized();
+	/** Should only be called if bIsActive == true
+	 * <p> Note: currently called only in OnDestroyed */
+	virtual void DestroyActiveState();
 private:
 	bool bItemInitialized = false;
+	bool bIsActive = false;
 	UPROPERTY(ReplicatedUsing = OnRep_ItemInitializer)
 	FXIUItemDefault ItemInitializer;
 	

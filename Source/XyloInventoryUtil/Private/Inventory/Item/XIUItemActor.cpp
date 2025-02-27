@@ -26,7 +26,10 @@ void AXIUItemActor::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (!Item && DefaultItem.ItemDefinition) SetItemWithDefault(DefaultItem);
+	if (HasAuthority() && !Item && DefaultItem.ItemDefinition)
+	{
+		SetItemWithDefault(DefaultItem);
+	}
 }
 
 void AXIUItemActor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -77,7 +80,8 @@ bool AXIUItemActor::TryPickUp_Implementation(UXIUInventoryComponent* OtherInvent
 
 void AXIUItemActor::SetItemWithDefault(FXIUItemDefault NewItemDefault)
 {
-	SetItem(UXIUInventoryFunctionLibrary::MakeItemFromDefault(this, NewItemDefault));
+	Item = UXIUInventoryFunctionLibrary::MakeItemFromDefault(this, NewItemDefault);
+	OnRep_Item(nullptr);
 }
 
 void AXIUItemActor::SetItem(UXIUItem* NewItem)

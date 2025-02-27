@@ -35,24 +35,14 @@ void UXIUItem::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetime
  * UXROUReplicatedObject Interface
  */
 
-void UXIUItem::DestroyObject()
+void UXIUItem::OnDestroyed()
 {
-	if (IsValid(this))
+	if (bIsActive)
 	{
-		SetCount(0); // setting count to zero to signal that we are destroying the item
+		DestroyActiveState();
 	}
-	Super::DestroyObject();
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/*
- * IInterface_ActorSubobject Interface
- */
-
-void UXIUItem::OnDestroyedFromReplication()
-{
-	SetCount(0); // setting count to zero locally to signal that we are destroying the item (might have not replicated yet)
+	
+	Super::OnDestroyed();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -119,6 +109,8 @@ void UXIUItem::OnRep_ItemInitializer()
 
 void UXIUItem::InitializingItem()
 {
+	bIsActive = true;
+	
 	SetItemDefinition(ItemInitializer.ItemDefinition);
 	SetCount(ItemInitializer.Count);
 	bItemInitialized = true;
@@ -129,6 +121,12 @@ void UXIUItem::InitializingItem()
 
 void UXIUItem::OnItemInitialized()
 {
+}
+
+void UXIUItem::DestroyActiveState()
+{
+	SetCount(0); // setting count to zero to signal that we are destroying the item
+	bIsActive = false;
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
