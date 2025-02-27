@@ -139,7 +139,7 @@ void FXIUInventorySlot::ApplySettings(const FXIUInventorySlotSettings& SlotSetti
 /*--------------------------------------------------------------------------------------------------------------------*/
 /* FFastArraySerializer contract */
 
-void FXIUInventoryList::PreReplicatedRemove(const TArrayView<int32> RemovedIndices, int32 FinalSize)
+void FXIUInventoryList::PreReplicatedRemove(const TArrayView<int32>& RemovedIndices, int32 FinalSize)
 {
 	for (int32 Index : RemovedIndices)
 	{
@@ -153,7 +153,7 @@ void FXIUInventoryList::PreReplicatedRemove(const TArrayView<int32> RemovedIndic
 	}
 }
 
-void FXIUInventoryList::PostReplicatedAdd(const TArrayView<int32> AddedIndices, int32 FinalSize)
+void FXIUInventoryList::PostReplicatedAdd(const TArrayView<int32>& AddedIndices, int32 FinalSize)
 {
 	for (int32 Index : AddedIndices)
 	{
@@ -167,7 +167,7 @@ void FXIUInventoryList::PostReplicatedAdd(const TArrayView<int32> AddedIndices, 
 	}
 }
 
-void FXIUInventoryList::PostReplicatedChange(const TArrayView<int32> ChangedIndices, int32 FinalSize)
+void FXIUInventoryList::PostReplicatedChange(const TArrayView<int32>& ChangedIndices, int32 FinalSize)
 {
 	for (int32 Index : ChangedIndices)
 	{

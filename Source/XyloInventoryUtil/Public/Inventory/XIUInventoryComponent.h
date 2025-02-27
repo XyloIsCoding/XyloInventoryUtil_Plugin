@@ -170,11 +170,11 @@ private:
 	
 public:
 	/* Calls BroadcastChangeMessage, and calls UnBindItemCountChangedDelegate on the items of the removed slots */
-	void PreReplicatedRemove(const TArrayView<int32> RemovedIndices, int32 FinalSize);
+	void PreReplicatedRemove(const TArrayView<int32>& RemovedIndices, int32 FinalSize);
 	/* Calls BroadcastChangeMessage, and calls BindItemCountChangedDelegate on the items of the added slots */
-	void PostReplicatedAdd(const TArrayView<int32> AddedIndices, int32 FinalSize);
+	void PostReplicatedAdd(const TArrayView<int32>& AddedIndices, int32 FinalSize);
 	/* Calls BroadcastChangeMessage, and, if item changed, calls BindItemCountChangedDelegate on the new items, and UnBind on the old one */
-	void PostReplicatedChange(const TArrayView<int32> ChangedIndices, int32 FinalSize);
+	void PostReplicatedChange(const TArrayView<int32>& ChangedIndices, int32 FinalSize);
 
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
 	{
