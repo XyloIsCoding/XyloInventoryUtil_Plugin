@@ -3,7 +3,7 @@
 
 #include "Inventory/XIUInventoryComponent.h"
 
-#include "Inventory/XIUInventoryFunctionLibrary.h"
+#include "Inventory/XIUInventoryUtilLibrary.h"
 #include "Inventory/Item/XIUItemActor.h"
 #include "Inventory/Item/XIUItemDefinition.h"
 #include "Net/UnrealNetwork.h"
@@ -273,7 +273,7 @@ int FXIUInventoryList::AddItemDefault(FXIUItemDefault ItemDefault, TArray<TObjec
 		if (Slot.IsEmpty() && !Slot.IsLocked() && Slot.MatchesFilterByClass(ItemDefault.ItemDefinition->ItemClass))
 		{
 			ItemDefault.Count = RemainingCount;
-			if (TObjectPtr<UXIUItem> NewItem = UXIUInventoryFunctionLibrary::MakeItemFromDefault(OwnerComponent->GetOwner(), ItemDefault))
+			if (TObjectPtr<UXIUItem> NewItem = UXIUInventoryUtilLibrary::MakeItemFromDefault(OwnerComponent->GetOwner(), ItemDefault))
 			{
 				TObjectPtr<UXIUItem> OldItem;
 				if (Slot.SetItem(NewItem, OldItem))
@@ -320,7 +320,7 @@ int FXIUInventoryList::AddItem(TObjectPtr<UXIUItem> Item, bool bDuplicate, TObje
 
 	// still count to add, so we make new item
 	Item->SetCount(RemainingCount);
-	if (TObjectPtr<UXIUItem> NewItem = bDuplicate ? UXIUInventoryFunctionLibrary::DuplicateItem(OwnerComponent->GetOwner(), Item) : Item.Get())
+	if (TObjectPtr<UXIUItem> NewItem = bDuplicate ? UXIUInventoryUtilLibrary::DuplicateItem(OwnerComponent->GetOwner(), Item) : Item.Get())
 	{
 		for (FXIUInventorySlot& Slot : Entries)
 		{
@@ -348,7 +348,7 @@ bool FXIUInventoryList::SetItemAtSlot(int SlotIndex, TObjectPtr<UXIUItem> Item, 
 	check(CanManipulateInventory());
 	checkf(SlotIndex < Entries.Num(), TEXT("The slot at index %i does not exist"), SlotIndex)
 	
-	if (TObjectPtr<UXIUItem> NewItem = bDuplicate ? UXIUInventoryFunctionLibrary::DuplicateItem(OwnerComponent->GetOwner(), Item) : Item.Get())
+	if (TObjectPtr<UXIUItem> NewItem = bDuplicate ? UXIUInventoryUtilLibrary::DuplicateItem(OwnerComponent->GetOwner(), Item) : Item.Get())
 	{
 		FXIUInventorySlot& Slot = Entries[SlotIndex];
 		if (Slot.SetItem(NewItem, OldItem))

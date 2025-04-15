@@ -1,12 +1,12 @@
 // Copyright XyloIsCoding 2024
 
 
-#include "Inventory/XIUInventoryFunctionLibrary.h"
+#include "Inventory/XIUInventoryUtilLibrary.h"
 #include "Inventory/XIUInventoryComponent.h"
 #include "Inventory/Item/XIUItemDefinition.h"
 
 
-UXIUItem* UXIUInventoryFunctionLibrary::MakeItemFromDefault(UObject* Outer, FXIUItemDefault ItemDefault)
+UXIUItem* UXIUInventoryUtilLibrary::MakeItemFromDefault(UObject* Outer, FXIUItemDefault ItemDefault)
 {
 	checkf(ItemDefault.ItemDefinition && ItemDefault.ItemDefinition->ItemClass, TEXT("Cannot make item of unset class"))
 	if (ItemDefault.Count <= 0) return nullptr; 
@@ -16,13 +16,13 @@ UXIUItem* UXIUInventoryFunctionLibrary::MakeItemFromDefault(UObject* Outer, FXIU
 	return Item;
 }
 
-UXIUItem* UXIUInventoryFunctionLibrary::DuplicateItem(UObject* Outer, UXIUItem* Item)
+UXIUItem* UXIUInventoryUtilLibrary::DuplicateItem(UObject* Outer, UXIUItem* Item)
 {
 	checkf(Item, TEXT("Cannot duplicate null item"));
 	return Item->Duplicate(Outer);
 }
 
-const UXIUItemFragment* UXIUInventoryFunctionLibrary::FindItemDefinitionFragment(const TSubclassOf<UXIUItemDefinition> ItemDef, const TSubclassOf<UXIUItemFragment> FragmentClass)
+const UXIUItemFragment* UXIUInventoryUtilLibrary::FindItemDefinitionFragment(const TSubclassOf<UXIUItemDefinition> ItemDef, const TSubclassOf<UXIUItemFragment> FragmentClass)
 {
 	if ((ItemDef != nullptr) && (FragmentClass != nullptr))
 	{

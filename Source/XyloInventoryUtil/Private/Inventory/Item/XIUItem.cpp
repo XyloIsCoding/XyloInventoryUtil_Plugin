@@ -3,7 +3,7 @@
 
 #include "Inventory/Item/XIUItem.h"
 
-#include "Inventory/XIUInventoryFunctionLibrary.h"
+#include "Inventory/XIUInventoryUtilLibrary.h"
 #include "Inventory/Item/XIUItemDefinition.h"
 #include "Net/UnrealNetwork.h"
 
@@ -74,7 +74,7 @@ bool UXIUItem::CanStack(UXIUItem* Item)
 
 UXIUItem* UXIUItem::Duplicate(UObject* Outer)
 {
-	UXIUItem* Item = UXIUInventoryFunctionLibrary::MakeItemFromDefault(Outer, FXIUItemDefault(ItemDefinition, Count));
+	UXIUItem* Item = UXIUInventoryUtilLibrary::MakeItemFromDefault(Outer, FXIUItemDefault(ItemDefinition, Count));
 	return Item;
 }
 

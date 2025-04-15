@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
-#include "XIUInventoryFunctionLibrary.generated.h"
+#include "XIUInventoryUtilLibrary.generated.h"
 
 class UXIUItemFragment;
 class UXIUItemDefinition;
@@ -15,7 +15,7 @@ class UXIUInventoryComponent;
  * 
  */
 UCLASS()
-class XYLOINVENTORYUTIL_API UXIUInventoryFunctionLibrary : public UBlueprintFunctionLibrary
+class XYLOINVENTORYUTIL_API UXIUInventoryUtilLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
 	

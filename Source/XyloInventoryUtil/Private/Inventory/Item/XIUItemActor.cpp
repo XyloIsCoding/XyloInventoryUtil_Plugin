@@ -4,7 +4,7 @@
 #include "Inventory/Item/XIUItemActor.h"
 
 #include "Inventory/XIUInventoryComponent.h"
-#include "Inventory/XIUInventoryFunctionLibrary.h"
+#include "Inventory/XIUInventoryUtilLibrary.h"
 #include "Net/UnrealNetwork.h"
 
 AXIUItemActor::AXIUItemActor(const FObjectInitializer& ObjectInitializer)
@@ -80,14 +80,14 @@ bool AXIUItemActor::TryPickUp_Implementation(UXIUInventoryComponent* OtherInvent
 
 void AXIUItemActor::SetItemWithDefault(FXIUItemDefault NewItemDefault)
 {
-	Item = UXIUInventoryFunctionLibrary::MakeItemFromDefault(this, NewItemDefault);
+	Item = UXIUInventoryUtilLibrary::MakeItemFromDefault(this, NewItemDefault);
 	OnRep_Item(nullptr);
 }
 
 void AXIUItemActor::SetItem(UXIUItem* NewItem)
 {
 	UXIUItem* OldItem = Item;
-	Item = UXIUInventoryFunctionLibrary::DuplicateItem(this, NewItem);
+	Item = UXIUInventoryUtilLibrary::DuplicateItem(this, NewItem);
 	OnRep_Item(OldItem);
 }
 
