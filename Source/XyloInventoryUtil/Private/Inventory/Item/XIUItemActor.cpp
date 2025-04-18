@@ -45,13 +45,12 @@ void AXIUItemActor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLif
  * IXIUPickUpInterface Interface
  */
 
-void AXIUItemActor::SetItem_Implementation(UXIUItem* NewItem)
+void AXIUItemActor::SetItem_Implementation(UXIUItem* NewItem, int32 Count)
 {
 	UXIUItem* OldItem = Item;
 	Item = UXIUInventoryUtilLibrary::DuplicateItem(this, NewItem);
+	if (Item) Item->SetCount(Count);
 	OnRep_Item(OldItem);
-
-	// TODO: this does not modify set item count and leaves it to drop item function, but inventory actor, already modifies both counts. Decide what to do.
 }
 
 UXIUItem* AXIUItemActor::GetItem_Implementation()

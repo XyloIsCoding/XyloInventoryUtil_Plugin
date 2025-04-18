@@ -212,12 +212,14 @@ public:
 	 * @return Count of this item which was not added */
 	int AddItemDefault(FXIUItemDefault ItemDefault, TArray<UXIUItem*>& AddedItems);
 	/** Add an item
-	 * @param Item: item to add (the count is modified when count is added to existing matching item, and, if
-	 *				bDuplicate is true, the count is set to zero if a slot gets filled with duplicate item)
+	 * @param Item: item to add (count is decreased to match the amount that was added to inventory, unless
+	 *				bModifyItemCount is true)
+	 * @param CountOverride
 	 * @param bDuplicate: set to true if the Item was not created using this component
+	 * @param bModifyItemCount: modify count of item passed as input
 	 * @param AddedItem: pointer to added item
 	 * @return Count of this item which was not added */
-	int AddItem(UXIUItem* Item, bool bDuplicate, UXIUItem*& AddedItem);
+	int AddItem(UXIUItem* Item, int32 CountOverride, bool bDuplicate, bool bModifyItemCount, UXIUItem*& AddedItem);
 
 	/** Set item in slot
 	 ** @param SlotIndex: Slot to use
@@ -415,13 +417,15 @@ public:
 	 * The function already modifies the count of the Item passed as parameter to account for
 	 * the count actually transferred to this inventory */
 	UFUNCTION(BlueprintCallable, Category= "Inventory")
-	void AddItem(UXIUItem* Item);
+	void AddItem(UXIUItem* Item, int32 CountOverride = -1);
+	/** Like AddItem, but does not modify the count of Item parameter */
+	void AddItemNoModify(UXIUItem* Item, int32 CountOverride = -1);
 
 	/** duplicates this item and sets it in slot (replacing old item if present)
 	 * does not modify in any way the item passed as parameter
 	 * @return: true if successful */
 	UFUNCTION(BlueprintCallable, Category= "Inventory")
-	bool SetItemAtSlot(const int SlotIndex, UXIUItem* Item);
+	bool SetItemAtSlot(const int32 SlotIndex, UXIUItem* Item);
 
 	/** transfer as much count as possible of the item at this slot (internally uses AddItem on OtherInventory) */
 	UFUNCTION(BlueprintCallable, Category= "Inventory")
@@ -436,7 +440,7 @@ public:
 	 * @return pointer to the item actor. FinishSpawning must be called
 	 */
 	UFUNCTION(BlueprintCallable, Category= "Inventory")
-	AXIUItemActor* DropItemAtSlot(const FTransform& DropTransform, const int SlotIndex, const int Count = -1, const TSubclassOf<AXIUItemActor> ItemActorClass = nullptr, const bool bFinishSpawning = false);
+	AXIUItemActor* DropItemAtSlot(const FTransform& DropTransform, const int32 SlotIndex, const int32 Count = -1, const TSubclassOf<AXIUItemActor> ItemActorClass = nullptr, const bool bFinishSpawning = false);
 
 	/** @return number of items actually consumed */
 	UFUNCTION(BlueprintCallable, Category= "Inventory")

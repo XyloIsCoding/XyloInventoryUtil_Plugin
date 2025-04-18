@@ -23,9 +23,11 @@ class XYLOINVENTORYUTIL_API IXIUPickUpInterface
 	GENERATED_BODY()
 
 public:
+	/** @remark This function should not modify InItem's Count */
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Interaction")
-	void SetItem(UXIUItem* InItem);
-	virtual void SetItem_Implementation(UXIUItem* InItem) = 0;
+	void SetItem(UXIUItem* InItem, int32 Count);
+	/** @remark This function should not modify InItem's Count */
+	virtual void SetItem_Implementation(UXIUItem* InItem, int32 Count) = 0;
 	
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Interaction")
 	UXIUItem* GetItem();

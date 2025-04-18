@@ -36,7 +36,7 @@ protected:
 	 */
 
 public:
-	virtual void SetItem_Implementation(UXIUItem* InItem) override;
+	virtual void SetItem_Implementation(UXIUItem* InItem, int32 Count) override;
 	virtual UXIUItem* GetItem_Implementation() override;
 	virtual bool TryPickUp_Implementation(UXIUInventoryComponent* OtherInventory) override;
 	

@@ -37,8 +37,7 @@ public:
 
 public:
 	/** Duplicate the item and set the duplicate as this actor's item (does not touch the input item) */
-	UFUNCTION(BlueprintCallable)
-	void SetItem_Implementation(UXIUItem* NewItem) override;
+	virtual void SetItem_Implementation(UXIUItem* InItem, int32 Count) override;
 	virtual UXIUItem* GetItem_Implementation() override;
 	virtual bool TryPickUp_Implementation(UXIUInventoryComponent* OtherInventory) override;
 	

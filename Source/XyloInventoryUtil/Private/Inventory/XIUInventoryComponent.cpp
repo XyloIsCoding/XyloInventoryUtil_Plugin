@@ -295,13 +295,13 @@ int FXIUInventoryList::AddItemDefault(FXIUItemDefault ItemDefault, TArray<UXIUIt
 	return RemainingCount;
 }
 
-int FXIUInventoryList::AddItem(UXIUItem* Item, bool bDuplicate, UXIUItem*& AddedItem)
+int FXIUInventoryList::AddItem(UXIUItem* Item, int32 CountOverride, bool bDuplicate, bool bModifyItemCount, UXIUItem*& AddedItem)
 {
 	check(CanManipulateInventory());
 	checkf(Item, TEXT("Cannot add item invalid item"))
 
-	int RemainingCount = Item->GetCount();
-	if (RemainingCount <= 0) return RemainingCount;
+	int RemainingCount = CountOverride >= 0 ? FMath::Min(Item->GetCount(), CountOverride) : Item->GetCount();
+	if (RemainingCount <= 0) return 0;
 
 	// try to add count to existing items
 	for (FXIUInventorySlot& Slot : Entries)
@@ -310,18 +310,20 @@ int FXIUInventoryList::AddItem(UXIUItem* Item, bool bDuplicate, UXIUItem*& Added
 		{
 			RemainingCount -= Slot.GetItem()->ModifyCount(RemainingCount);
 
+			// We are done adding, and we do not need to create a new stack
 			if (RemainingCount <= 0)
 			{
-				Item->SetCount(RemainingCount);
+				if (bModifyItemCount) Item->SetCount(0);
 				return RemainingCount;
 			}
 		}
 	}
 
 	// still count to add, so we make new item
-	Item->SetCount(RemainingCount);
+	if (bModifyItemCount) Item->SetCount(RemainingCount);
 	if (UXIUItem* NewItem = bDuplicate ? UXIUInventoryUtilLibrary::DuplicateItem(OwnerComponent->GetOwner(), Item) : Item)
 	{
+		NewItem->SetCount(RemainingCount);
 		for (FXIUInventorySlot& Slot : Entries)
 		{
 			if (Slot.IsEmpty())
@@ -333,7 +335,7 @@ int FXIUInventoryList::AddItem(UXIUItem* Item, bool bDuplicate, UXIUItem*& Added
 					RegisterSlotChange(Slot, 0, NewItem->GetCount(), true, OldItem);
 					
 					AddedItem = NewItem;
-					if (bDuplicate) Item->SetCount(0);
+					if (bDuplicate && bModifyItemCount) Item->SetCount(0);
 					RemainingCount = 0;
 					break;
 				}
@@ -703,16 +705,25 @@ void UXIUInventoryComponent::AddItemDefault(const FXIUItemDefault ItemDefault)
 	}
 }
 
-void UXIUInventoryComponent::AddItem(UXIUItem* Item)
+void UXIUInventoryComponent::AddItem(UXIUItem* Item, int32 CountOverride)
 {
 	if (GetOwner() && GetOwner()->HasAuthority())
 	{
 		UXIUItem* AddedItem;
-		Inventory.AddItem(Item, true, AddedItem);
+		Inventory.AddItem(Item, CountOverride, true, true, AddedItem);
 	}
 }
 
-bool UXIUInventoryComponent::SetItemAtSlot(const int SlotIndex, UXIUItem* Item)
+void UXIUInventoryComponent::AddItemNoModify(UXIUItem* Item, int32 CountOverride)
+{
+	if (GetOwner() && GetOwner()->HasAuthority())
+	{
+		UXIUItem* AddedItem;
+		Inventory.AddItem(Item, CountOverride, true, false, AddedItem);
+	}
+}
+
+bool UXIUInventoryComponent::SetItemAtSlot(const int32 SlotIndex, UXIUItem* Item)
 {
 	if (GetOwner() && GetOwner()->HasAuthority())
 	{
@@ -735,7 +746,7 @@ void UXIUInventoryComponent::TransferItemFromSlot(int SlotIndex, UXIUInventoryCo
 	}
 }
 
-AXIUItemActor* UXIUInventoryComponent::DropItemAtSlot(const FTransform& DropTransform, const int SlotIndex, const int Count, const TSubclassOf<AXIUItemActor> ItemActorClass, const bool bFinishSpawning)
+AXIUItemActor* UXIUInventoryComponent::DropItemAtSlot(const FTransform& DropTransform, const int32 SlotIndex, const int32 Count, const TSubclassOf<AXIUItemActor> ItemActorClass, const bool bFinishSpawning)
 {
 	if (!GetOwner() || !GetOwner()->HasAuthority() || Count == 0) return nullptr;
 
@@ -746,17 +757,13 @@ AXIUItemActor* UXIUInventoryComponent::DropItemAtSlot(const FTransform& DropTran
 			const TSubclassOf<AXIUItemActor> DropActorClass = ItemActorClass ? ItemActorClass : DefaultItemActorClass;
 			AXIUItemActor* DroppedItemActor = World->SpawnActorDeferred<AXIUItemActor>(DropActorClass , DropTransform);
 			if (!DroppedItemActor) return nullptr;
-			DroppedItemActor->Execute_SetItem(DroppedItemActor, ItemToDrop);
 
-			if (Count > 0)
-			{
-				// Modify count of the item in DroppedItemActor
-				const int CountToDrop = FMath::Min(ItemToDrop->GetCount(), Count);
-				DroppedItemActor->Execute_GetItem(DroppedItemActor)->SetCount(CountToDrop);
-				// Adjust the count in original item
-				ItemToDrop->ModifyCount(-CountToDrop);
-			}
-			else ItemToDrop->SetCount(0); // Count = -1 so we dropped everything
+			// if Count < 0 drop everything, else try to drop Count if we have enough
+			const int CountToDrop = Count > 0 ? FMath::Min(ItemToDrop->GetCount(), Count) : ItemToDrop->GetCount();
+			// Set Item in dropped item actor
+			DroppedItemActor->Execute_SetItem(DroppedItemActor, ItemToDrop, CountToDrop);
+			// Adjust the count in original item
+			ItemToDrop->ModifyCount(-CountToDrop);
 
 			if (bFinishSpawning)
 			{

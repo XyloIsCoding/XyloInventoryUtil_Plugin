@@ -4,6 +4,7 @@
 #include "Inventory/XIUInventoryActor.h"
 
 #include "Inventory/XIUInventoryComponent.h"
+#include "Inventory/XIUInventoryUtilLibrary.h"
 
 
 AXIUInventoryActor::AXIUInventoryActor()
@@ -37,10 +38,10 @@ void AXIUInventoryActor::BeginPlay()
  * IXIUPickUpInterface Interface
  */
 
-void AXIUInventoryActor::SetItem_Implementation(UXIUItem* InItem)
+void AXIUInventoryActor::SetItem_Implementation(UXIUItem* InItem, int32 Count)
 {
 	if (!InventoryComponent) return;
-	InventoryComponent->AddItem(InItem);
+	InventoryComponent->AddItemNoModify(InItem, Count);
 }
 
 UXIUItem* AXIUInventoryActor::GetItem_Implementation()
