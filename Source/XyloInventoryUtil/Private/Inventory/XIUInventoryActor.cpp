@@ -37,8 +37,15 @@ void AXIUInventoryActor::BeginPlay()
  * IXIUPickUpInterface Interface
  */
 
+void AXIUInventoryActor::SetItem_Implementation(UXIUItem* InItem)
+{
+	if (!InventoryComponent) return;
+	InventoryComponent->AddItem(InItem);
+}
+
 UXIUItem* AXIUInventoryActor::GetItem_Implementation()
 {
+	if (!InventoryComponent) return nullptr;
 	return InventoryComponent->GetFirstItem();
 }
 

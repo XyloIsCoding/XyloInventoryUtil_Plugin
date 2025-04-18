@@ -746,7 +746,7 @@ AXIUItemActor* UXIUInventoryComponent::DropItemAtSlot(const FTransform& DropTran
 			const TSubclassOf<AXIUItemActor> DropActorClass = ItemActorClass ? ItemActorClass : DefaultItemActorClass;
 			AXIUItemActor* DroppedItemActor = World->SpawnActorDeferred<AXIUItemActor>(DropActorClass , DropTransform);
 			if (!DroppedItemActor) return nullptr;
-			DroppedItemActor->SetItem(ItemToDrop);
+			DroppedItemActor->Execute_SetItem(DroppedItemActor, ItemToDrop);
 
 			if (Count > 0)
 			{

@@ -24,8 +24,14 @@ class XYLOINVENTORYUTIL_API IXIUPickUpInterface
 
 public:
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Interaction")
+	void SetItem(UXIUItem* InItem);
+	virtual void SetItem_Implementation(UXIUItem* InItem) = 0;
+	
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Interaction")
 	UXIUItem* GetItem();
+	virtual UXIUItem* GetItem_Implementation() = 0;
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Interaction")
 	bool TryPickUp(UXIUInventoryComponent* OtherInventory);
+	virtual bool TryPickUp_Implementation(UXIUInventoryComponent* OtherInventory) = 0;
 };
