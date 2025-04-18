@@ -400,11 +400,6 @@ public:
 private:
 	UPROPERTY(EditAnywhere, Category= "Inventory")
 	TArray<FXIUItemDefault> DefaultItems;
-
-private:
-	/** Default class used to drop items */
-	UPROPERTY(EditAnywhere, Category= "Inventory")
-	TSubclassOf<AXIUItemActor> DefaultItemActorClass;
 	
 public:
 	UFUNCTION(BlueprintCallable, Category= "Inventory")
