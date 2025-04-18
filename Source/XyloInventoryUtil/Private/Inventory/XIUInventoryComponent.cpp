@@ -4,6 +4,7 @@
 #include "Inventory/XIUInventoryComponent.h"
 
 #include "Inventory/XIUInventoryUtilLibrary.h"
+#include "Inventory/Item/XIUDropFragment.h"
 #include "Inventory/Item/XIUItemActor.h"
 #include "Inventory/Item/XIUItemDefinition.h"
 #include "Net/UnrealNetwork.h"
@@ -746,33 +747,51 @@ void UXIUInventoryComponent::TransferItemFromSlot(int32 SlotIndex, UXIUInventory
 	}
 }
 
-AXIUItemActor* UXIUInventoryComponent::DropItemAtSlot(const FTransform& DropTransform, const int32 SlotIndex, const int32 Count, const TSubclassOf<AXIUItemActor> ItemActorClass, const bool bFinishSpawning)
+AActor* UXIUInventoryComponent::DropItemAtSlot(const FTransform& DropTransform, const int32 SlotIndex, const int32 Count, const bool bFinishSpawning)
 {
 	if (!GetOwner() || !GetOwner()->HasAuthority() || Count == 0) return nullptr;
 
-	if (UXIUItem* ItemToDrop = GetItemAtSlot(SlotIndex))
+	// Get item to drop
+	UXIUItem* ItemToDrop = GetItemAtSlot(SlotIndex);
+	if (!ItemToDrop) return nullptr;
+	
+	// Get class of actor to spawn as drop
+	const UXIUDropFragment* DropFragment = ItemToDrop->GetItemDefinition()->FindFragmentByClass<UXIUDropFragment>();
+	if (!DropFragment)
 	{
-		if (UWorld* World = GetWorld())
-		{
-			const TSubclassOf<AXIUItemActor> DropActorClass = ItemActorClass ? ItemActorClass : DefaultItemActorClass;
-			AXIUItemActor* DroppedItemActor = World->SpawnActorDeferred<AXIUItemActor>(DropActorClass , DropTransform);
-			if (!DroppedItemActor) return nullptr;
-
-			// if Count < 0 drop everything, else try to drop Count if we have enough
-			const int32 CountToDrop = Count > 0 ? FMath::Min(ItemToDrop->GetCount(), Count) : ItemToDrop->GetCount();
-			// Set Item in dropped item actor
-			DroppedItemActor->Execute_SetItem(DroppedItemActor, ItemToDrop, CountToDrop);
-			// Adjust the count in original item
-			ItemToDrop->ModifyCount(-CountToDrop);
-
-			if (bFinishSpawning)
-			{
-				DroppedItemActor->FinishSpawning(DropTransform);
-			}
-			return DroppedItemActor;
-		}
+		UE_LOG(LogTemp, Error, TEXT("UXIUInventoryComponent::DropItemAtSlot -> Item [%s] does not have a UXIUDropFragment"), *ItemToDrop->GetItemName())
+		return nullptr;
 	}
-	return nullptr;
+	const TSubclassOf<AActor> DropActorClass = DropFragment->ItemDropActor;
+	if (!DropActorClass)
+	{
+		UE_LOG(LogTemp, Error, TEXT("UXIUInventoryComponent::DropItemAtSlot -> UXIUDropFragment for Item [%s] does not specify an actor class for its dropped form"), *ItemToDrop->GetItemName())
+		return nullptr;
+	}
+
+	// Spawn actor
+	AActor* DroppedItemActor = GetWorld()->SpawnActorDeferred<AActor>(DropActorClass , DropTransform);
+	if (!DroppedItemActor) return nullptr;
+	IXIUPickUpInterface* PickUpInterface = Cast<IXIUPickUpInterface>(DroppedItemActor);
+	if (!PickUpInterface)
+	{
+		// Should never happen since actor subclass in UXIUDropFragment only accepts classes that implement IXIUPickUpInterface
+		UE_LOG(LogTemp, Error, TEXT("UXIUInventoryComponent::DropItemAtSlot -> Specified Drop Actor Class [%s] does not have implement IXIUPickUpInterface"), *DropActorClass->GetName())
+		return nullptr;
+	}
+
+	// if Count < 0 drop everything, else try to drop Count if we have enough
+	const int32 CountToDrop = Count > 0 ? FMath::Min(ItemToDrop->GetCount(), Count) : ItemToDrop->GetCount();
+	// Set Item in actor (we assume that all count will fit)
+	PickUpInterface->Execute_SetItem(DroppedItemActor, ItemToDrop, CountToDrop);
+	// Adjust the count in original item
+	ItemToDrop->ModifyCount(-CountToDrop);
+	
+	if (bFinishSpawning)
+	{
+		DroppedItemActor->FinishSpawning(DropTransform);
+	}
+	return DroppedItemActor;
 }
 
 int32 UXIUInventoryComponent::ConsumeItemsByDefinition(UXIUItemDefinition* ItemDefinition, const int32 Count)
