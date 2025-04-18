@@ -38,7 +38,7 @@ public:
 	FString ItemName;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Item")
-	int MaxCount;
+	int32 MaxCount;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Item", Instanced)
 	TArray<TObjectPtr<UXIUItemFragment>> Fragments;

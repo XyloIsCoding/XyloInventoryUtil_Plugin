@@ -145,7 +145,7 @@ void FXIUInventoryList::PreReplicatedRemove(const TArrayView<int32>& RemovedIndi
 	{
 		FXIUInventorySlot& Slot = Entries[Index];
 		
-		int OldCount = Slot.GetItemCountSafe();
+		int32 OldCount = Slot.GetItemCountSafe();
 		RegisterSlotChange(Slot, OldCount, 0, true, Slot.GetItem());
 		
 		Slot.LastObservedCount = 0;
@@ -159,7 +159,7 @@ void FXIUInventoryList::PostReplicatedAdd(const TArrayView<int32>& AddedIndices,
 	{
 		FXIUInventorySlot& Slot = Entries[Index];
 		
-		int NewCount = Slot.GetItemCountSafe();
+		int32 NewCount = Slot.GetItemCountSafe();
 		RegisterSlotChange(Slot, 0, NewCount, true);
 		
 		Slot.LastObservedCount = NewCount;
@@ -174,9 +174,9 @@ void FXIUInventoryList::PostReplicatedChange(const TArrayView<int32>& ChangedInd
 		FXIUInventorySlot& Slot = Entries[Index];
 		check(Slot.LastObservedCount != INDEX_NONE);
 
-		int NewCount = Slot.GetItemCountSafe();
+		int32 NewCount = Slot.GetItemCountSafe();
 		bool bItemChanged = Slot.LastObservedItem != Slot.GetItem() || (Slot.LastObservedCount != 0 && NewCount == 0);
-		int OldCount = !bItemChanged ? Slot.LastObservedCount : 0;
+		int32 OldCount = !bItemChanged ? Slot.LastObservedCount : 0;
 		RegisterSlotChange(Slot, OldCount, NewCount, bItemChanged, Slot.LastObservedItem.Get());
 		
 		Slot.LastObservedCount = NewCount;
@@ -217,13 +217,13 @@ bool FXIUInventoryList::CanManipulateInventory() const
 /*--------------------------------------------------------------------------------------------------------------------*/
 /* Slots Management */
 
-void FXIUInventoryList::InitInventory(int Size)
+void FXIUInventoryList::InitInventory(int32 Size)
 {
 	check(CanManipulateInventory());
 	
 	Entries.Empty();
 	Entries.Reserve(Size);
-	for (int i = 0; i < Size ; i++)
+	for (int32 i = 0; i < Size ; i++)
 	{
 		FXIUInventorySlot& NewSlot = Entries.AddDefaulted_GetRef();
 		NewSlot.Index = i;
@@ -243,12 +243,12 @@ void FXIUInventoryList::AddSlot(const FXIUInventorySlotSettings& SlotSettings)
 	RegisterSlotChange(NewSlot, 0, 0, true);
 }
 
-int FXIUInventoryList::AddItemDefault(FXIUItemDefault ItemDefault, TArray<UXIUItem*>& AddedItems)
+int32 FXIUInventoryList::AddItemDefault(FXIUItemDefault ItemDefault, TArray<UXIUItem*>& AddedItems)
 {
 	check(CanManipulateInventory());
 	checkf(ItemDefault.ItemDefinition && ItemDefault.ItemDefinition->ItemClass, TEXT("Cannot add item of not specified class"))
 	
-	int RemainingCount = ItemDefault.Count;
+	int32 RemainingCount = ItemDefault.Count;
 	if (RemainingCount <= 0) return RemainingCount;
 
 	// try to add count to existing items
@@ -295,12 +295,12 @@ int FXIUInventoryList::AddItemDefault(FXIUItemDefault ItemDefault, TArray<UXIUIt
 	return RemainingCount;
 }
 
-int FXIUInventoryList::AddItem(UXIUItem* Item, int32 CountOverride, bool bDuplicate, bool bModifyItemCount, UXIUItem*& AddedItem)
+int32 FXIUInventoryList::AddItem(UXIUItem* Item, int32 CountOverride, bool bDuplicate, bool bModifyItemCount, UXIUItem*& AddedItem)
 {
 	check(CanManipulateInventory());
 	checkf(Item, TEXT("Cannot add item invalid item"))
 
-	int RemainingCount = CountOverride >= 0 ? FMath::Min(Item->GetCount(), CountOverride) : Item->GetCount();
+	int32 RemainingCount = CountOverride >= 0 ? FMath::Min(Item->GetCount(), CountOverride) : Item->GetCount();
 	if (RemainingCount <= 0) return 0;
 
 	// try to add count to existing items
@@ -345,7 +345,7 @@ int FXIUInventoryList::AddItem(UXIUItem* Item, int32 CountOverride, bool bDuplic
 	return RemainingCount;
 }
 
-bool FXIUInventoryList::SetItemAtSlot(int SlotIndex, UXIUItem* Item, bool bDuplicate, UXIUItem*& AddedItem, UXIUItem*& OldItem)
+bool FXIUInventoryList::SetItemAtSlot(int32 SlotIndex, UXIUItem* Item, bool bDuplicate, UXIUItem*& AddedItem, UXIUItem*& OldItem)
 {
 	check(CanManipulateInventory());
 	checkf(SlotIndex < Entries.Num(), TEXT("The slot at index %i does not exist"), SlotIndex)
@@ -365,7 +365,7 @@ bool FXIUInventoryList::SetItemAtSlot(int SlotIndex, UXIUItem* Item, bool bDupli
 	return false;
 }
 
-UXIUItem* FXIUInventoryList::GetItemAtSlot(const int SlotIndex)
+UXIUItem* FXIUInventoryList::GetItemAtSlot(const int32 SlotIndex)
 {
 	for (FXIUInventorySlot& Slot : Entries)
 	{
@@ -377,7 +377,7 @@ UXIUItem* FXIUInventoryList::GetItemAtSlot(const int SlotIndex)
 	return nullptr;
 }
 
-UXIUItem* FXIUInventoryList::RemoveItemAtSlot(int SlotIndex)
+UXIUItem* FXIUInventoryList::RemoveItemAtSlot(int32 SlotIndex)
 {
 	check(CanManipulateInventory());
 	checkf(SlotIndex < Entries.Num(), TEXT("The slot at index %i does not exist"), SlotIndex)
@@ -404,12 +404,12 @@ bool FXIUInventoryList::GetItemsByClass(const TSubclassOf<UXIUItem> ItemClass, T
 	return FoundItems.Num() > 0;
 }
 
-int FXIUInventoryList::ConsumeItemByDefinition(const UXIUItemDefinition* ItemDefinition, const int Count)
+int32 FXIUInventoryList::ConsumeItemByDefinition(const UXIUItemDefinition* ItemDefinition, const int32 Count)
 {
 	check(CanManipulateInventory());
 	if (!ItemDefinition) return 0;
 	
-	int CountLeftToConsume = Count;
+	int32 CountLeftToConsume = Count;
 	for (FXIUInventorySlot& Slot : Entries)
 	{
 		if (!Slot.IsEmpty() && Slot.GetItem()->GetItemDefinition() == ItemDefinition)
@@ -734,7 +734,7 @@ bool UXIUInventoryComponent::SetItemAtSlot(const int32 SlotIndex, UXIUItem* Item
 	return false;
 }
 
-void UXIUInventoryComponent::TransferItemFromSlot(int SlotIndex, UXIUInventoryComponent* OtherInventory)
+void UXIUInventoryComponent::TransferItemFromSlot(int32 SlotIndex, UXIUInventoryComponent* OtherInventory)
 {
 	if (GetOwner() && GetOwner()->HasAuthority())
 	{
@@ -759,7 +759,7 @@ AXIUItemActor* UXIUInventoryComponent::DropItemAtSlot(const FTransform& DropTran
 			if (!DroppedItemActor) return nullptr;
 
 			// if Count < 0 drop everything, else try to drop Count if we have enough
-			const int CountToDrop = Count > 0 ? FMath::Min(ItemToDrop->GetCount(), Count) : ItemToDrop->GetCount();
+			const int32 CountToDrop = Count > 0 ? FMath::Min(ItemToDrop->GetCount(), Count) : ItemToDrop->GetCount();
 			// Set Item in dropped item actor
 			DroppedItemActor->Execute_SetItem(DroppedItemActor, ItemToDrop, CountToDrop);
 			// Adjust the count in original item
@@ -775,7 +775,7 @@ AXIUItemActor* UXIUInventoryComponent::DropItemAtSlot(const FTransform& DropTran
 	return nullptr;
 }
 
-int UXIUInventoryComponent::ConsumeItemsByDefinition(UXIUItemDefinition* ItemDefinition, const int Count)
+int32 UXIUInventoryComponent::ConsumeItemsByDefinition(UXIUItemDefinition* ItemDefinition, const int32 Count)
 {
 	return Inventory.ConsumeItemByDefinition(ItemDefinition, Count);
 }
@@ -792,9 +792,9 @@ UXIUItem* UXIUInventoryComponent::GetFirstItem()
 	return nullptr;
 }
 
-int UXIUInventoryComponent::CountItemsByDefinition(UXIUItemDefinition* ItemDefinition)
+int32 UXIUInventoryComponent::CountItemsByDefinition(UXIUItemDefinition* ItemDefinition)
 {
-	int Count = 0;
+	int32 Count = 0;
 	for (const FXIUInventorySlot& Slot : Inventory.GetInventory())
 	{
 		if (UXIUItem* Item = Slot.GetItemSafe())
@@ -814,7 +814,7 @@ bool UXIUInventoryComponent::CanInsertItem(UXIUItem* Item) const
 	return false;
 }
 
-UXIUItem* UXIUInventoryComponent::GetItemAtSlot(const int SlotIndex)
+UXIUItem* UXIUInventoryComponent::GetItemAtSlot(const int32 SlotIndex)
 {
 	return Inventory.GetItemAtSlot(SlotIndex);
 }

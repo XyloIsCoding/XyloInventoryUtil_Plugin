@@ -154,14 +154,14 @@ void UXIUItem::SetItemDefinition(UXIUItemDefinition* InItemDefinition)
 /*--------------------------------------------------------------------------------------------------------------------*/
 /* Count */
 
-int UXIUItem::GetCount() const
+int32 UXIUItem::GetCount() const
 {
 	return Count;
 }
 
 void UXIUItem::SetCount(int32 NewCount)
 {
-	const int OldCount = Count;
+	const int32 OldCount = Count;
 	Count = FMath::Clamp(NewCount, 0, ItemDefinition->MaxCount);
 	LastCount = OldCount; // TODO: Remove
 
@@ -169,9 +169,9 @@ void UXIUItem::SetCount(int32 NewCount)
 	//UE_LOG(LogTemp, Warning, TEXT("Set Count %i (requested %i. MaxCount %i)"), Count, NewCount, ItemDefinition->MaxCount)
 }
 
-int UXIUItem::ModifyCount(const int AddCount)
+int32 UXIUItem::ModifyCount(const int32 AddCount)
 {
-	const int OldCount = Count;
+	const int32 OldCount = Count;
 	SetCount(Count + AddCount);
 	
 	return Count - OldCount;

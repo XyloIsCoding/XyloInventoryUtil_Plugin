@@ -73,7 +73,7 @@ protected:
 /*--------------------------------------------------------------------------------------------------------------------*/
 
 public:
-	virtual bool TryPickUpInSlot(UXIUInventoryComponent* OtherInventory, const int SlotIndex);
+	virtual bool TryPickUpInSlot(UXIUInventoryComponent* OtherInventory, const int32 SlotIndex);
 	
 
 };

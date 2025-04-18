@@ -50,7 +50,7 @@ struct FXIUItemDefault
 	{
 	}
 	
-	FXIUItemDefault(UXIUItemDefinition* ItemDefinition, int Count)
+	FXIUItemDefault(UXIUItemDefinition* ItemDefinition, int32 Count)
 		: ItemDefinition(ItemDefinition),
 		  Count(Count)
 	{
@@ -59,7 +59,7 @@ struct FXIUItemDefault
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UXIUItemDefinition> ItemDefinition;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int Count;
+	int32 Count;
 
 
 	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
@@ -186,20 +186,20 @@ public:
 public:
 	/** @return item count */
 	UFUNCTION(BlueprintCallable)
-	int GetCount() const;
+	int32 GetCount() const;
 	/** Set the count of the item */
 	UFUNCTION(BlueprintCallable)
 	void SetCount(int32 NewCount);
 	/** @return count added */
 	UFUNCTION(BlueprintCallable)
-	int ModifyCount(const int AddCount);
+	int32 ModifyCount(const int32 AddCount);
 protected:
 	UFUNCTION()
 	virtual void OnRep_Count(int32 OldCount);
 private:
 	UPROPERTY(ReplicatedUsing = OnRep_Count)
-	int Count = -1;
-	int LastCount = -1;
+	int32 Count = -1;
+	int32 LastCount = -1;
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 	

@@ -115,7 +115,7 @@ void AXIUItemActor::ItemSet()
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 
-bool AXIUItemActor::TryPickUpInSlot(UXIUInventoryComponent* OtherInventory, const int SlotIndex)
+bool AXIUItemActor::TryPickUpInSlot(UXIUInventoryComponent* OtherInventory, const int32 SlotIndex)
 {
 	if (!OtherInventory) return false;
 	

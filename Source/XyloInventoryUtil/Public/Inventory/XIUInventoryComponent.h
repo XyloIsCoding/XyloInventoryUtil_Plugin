@@ -58,9 +58,9 @@ public:
 	
 private:
 	UPROPERTY()
-	int Index = -1;
+	int32 Index = -1;
 public:
-	int GetIndex() const { return Index; }
+	int32 GetIndex() const { return Index; }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 	
@@ -193,7 +193,7 @@ private:
 	bool CanManipulateInventory() const;
 
 public:
-	int GetSize() const { return Entries.Num(); }
+	int32 GetSize() const { return Entries.Num(); }
 	const TArray<FXIUInventorySlot>& GetInventory() const { return Entries; };
 
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -202,7 +202,7 @@ public:
 	/* Slots Management */
 	
 public:
-	void InitInventory(int Size);
+	void InitInventory(int32 Size);
 	void AddSlot(const FXIUInventorySlotSettings& SlotSettings);
 	
 public:
@@ -210,7 +210,7 @@ public:
 	 * @param ItemDefault: item to add
 	 * @param AddedItems: pointers to added items
 	 * @return Count of this item which was not added */
-	int AddItemDefault(FXIUItemDefault ItemDefault, TArray<UXIUItem*>& AddedItems);
+	int32 AddItemDefault(FXIUItemDefault ItemDefault, TArray<UXIUItem*>& AddedItems);
 	/** Add an item
 	 * @param Item: item to add (count is decreased to match the amount that was added to inventory, unless
 	 *				bModifyItemCount is true)
@@ -219,7 +219,7 @@ public:
 	 * @param bModifyItemCount: modify count of item passed as input
 	 * @param AddedItem: pointer to added item
 	 * @return Count of this item which was not added */
-	int AddItem(UXIUItem* Item, int32 CountOverride, bool bDuplicate, bool bModifyItemCount, UXIUItem*& AddedItem);
+	int32 AddItem(UXIUItem* Item, int32 CountOverride, bool bDuplicate, bool bModifyItemCount, UXIUItem*& AddedItem);
 
 	/** Set item in slot
 	 ** @param SlotIndex: Slot to use
@@ -228,18 +228,18 @@ public:
 	 * @param AddedItem: pointer to added item
 	 * @param OldItem: pointer to item that was previously in the slot
 	 * @return true if item got set */
-	bool SetItemAtSlot(int SlotIndex, UXIUItem* Item, bool bDuplicate, UXIUItem*& AddedItem, UXIUItem*& OldItem);
+	bool SetItemAtSlot(int32 SlotIndex, UXIUItem* Item, bool bDuplicate, UXIUItem*& AddedItem, UXIUItem*& OldItem);
 	/** Get item in slot (Already checks IsEmpty on item)
 	 * @return pointer to item at index */
-	UXIUItem* GetItemAtSlot(const int SlotIndex);
+	UXIUItem* GetItemAtSlot(const int32 SlotIndex);
 	/** Remove item at slot
 	 * @return pointer to removed Item */
-	UXIUItem* RemoveItemAtSlot(int SlotIndex);
+	UXIUItem* RemoveItemAtSlot(int32 SlotIndex);
 
 	/** @return true if any item was found (Already checks IsEmpty on items) */
 	bool GetItemsByClass(const TSubclassOf<UXIUItem> ItemClass, TArray<UXIUItem*>& FoundItems);
 	/** @return Count actually consumed */
-	int ConsumeItemByDefinition(const UXIUItemDefinition* ItemDefinition, const int Count);
+	int32 ConsumeItemByDefinition(const UXIUItemDefinition* ItemDefinition, const int32 Count);
 	
 /*--------------------------------------------------------------------------------------------------------------------*/
 
@@ -387,7 +387,7 @@ private:
  	FXIUInventoryList Inventory;
 	/** Size of the inventory if bManualInitialization is false */
 	UPROPERTY(EditAnywhere, Category = "Inventory")
-	int InventorySize;
+	int32 InventorySize;
 	UPROPERTY(EditAnywhere, Category = "Inventory")
 	bool bManualInitialization;
 
@@ -429,7 +429,7 @@ public:
 
 	/** transfer as much count as possible of the item at this slot (internally uses AddItem on OtherInventory) */
 	UFUNCTION(BlueprintCallable, Category= "Inventory")
-	void TransferItemFromSlot(int SlotIndex, UXIUInventoryComponent* OtherInventory);
+	void TransferItemFromSlot(int32 SlotIndex, UXIUInventoryComponent* OtherInventory);
 
 	/** drop the item at this slot by spawning a XIUItemActor
 	 * @param DropTransform: transform used for deferred spawn
@@ -444,7 +444,7 @@ public:
 
 	/** @return number of items actually consumed */
 	UFUNCTION(BlueprintCallable, Category= "Inventory")
-	int ConsumeItemsByDefinition(UXIUItemDefinition* ItemDefinition, const int Count);
+	int32 ConsumeItemsByDefinition(UXIUItemDefinition* ItemDefinition, const int32 Count);
 	
 	/** Gets first item in the inventory (not necessarily first slot)
 	 * (Already checks IsEmpty on items) */
@@ -452,13 +452,13 @@ public:
 	UXIUItem* GetFirstItem();
 
 	UFUNCTION(BlueprintCallable, Category= "Inventory")
-	int CountItemsByDefinition(UXIUItemDefinition* ItemDefinition);
+	int32 CountItemsByDefinition(UXIUItemDefinition* ItemDefinition);
 
 	/** Check if you can insert any count of this item in inventory */
 	bool CanInsertItem(UXIUItem* Item) const;
 
 	UFUNCTION(BlueprintCallable, Category= "Inventory")
-	UXIUItem* GetItemAtSlot(const int SlotIndex);
+	UXIUItem* GetItemAtSlot(const int32 SlotIndex);
 	
 	
 };
