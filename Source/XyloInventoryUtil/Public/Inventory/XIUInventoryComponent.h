@@ -72,15 +72,15 @@ private:
 	TObjectPtr<UXIUItem> Item = nullptr;
 public:
 	/** @return true if item got modified */
-	bool Clear(TObjectPtr<UXIUItem>& OldItem);
+	bool Clear(UXIUItem*& OldItem);
 	/** @return true if item got modified */
-	bool SetItem(const TObjectPtr<UXIUItem> NewItem, TObjectPtr<UXIUItem>& OldItem);
+	bool SetItem(UXIUItem* NewItem, UXIUItem*& OldItem);
 	/** does NOT check for IsEmpty on the item
 	 * @return item of this slot. */
-	TObjectPtr<UXIUItem> GetItem() const;
+	UXIUItem* GetItem() const;
 	/** DOES check for IsEmpty on the item
 	 * @return item of this slot. */
-	TObjectPtr<UXIUItem> GetItemSafe() const;
+	UXIUItem* GetItemSafe() const;
 	bool IsEmpty() const;
 
 	int32 GetItemCountSafe() const;
@@ -101,7 +101,7 @@ private:
 public:
 	void SetFilter(const TSubclassOf<UXIUItem> NewFilter);
 	TSubclassOf<UXIUItem> GetFilter() const { return Filter; }
-	bool MatchesFilter(const TObjectPtr<UXIUItem> TestItem) const;
+	bool MatchesFilter(const UXIUItem* TestItem) const;
 	bool MatchesFilterByClass(const TSubclassOf<UXIUItem> TestItem) const;
 
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -122,7 +122,7 @@ public:
 /* Generic */
 
 public:
-	bool CanInsertItem(const TObjectPtr<UXIUItem> TestItem) const;
+	bool CanInsertItem(UXIUItem* TestItem) const;
 	void ApplySettings(const FXIUInventorySlotSettings& SlotSettings);
 	
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -188,7 +188,7 @@ public:
 	/* Helpers */
 	
 public:
-	void BroadcastChangeMessage(const FXIUInventorySlot& Entry, const int32 OldCount, const int32 NewCount, const TObjectPtr<UXIUItem> OldItem) const;
+	void BroadcastChangeMessage(const FXIUInventorySlot& Entry, const int32 OldCount, const int32 NewCount, UXIUItem* OldItem) const;
 private:
 	bool CanManipulateInventory() const;
 
@@ -210,14 +210,14 @@ public:
 	 * @param ItemDefault: item to add
 	 * @param AddedItems: pointers to added items
 	 * @return Count of this item which was not added */
-	int AddItemDefault(FXIUItemDefault ItemDefault, TArray<TObjectPtr<UXIUItem>>& AddedItems);
+	int AddItemDefault(FXIUItemDefault ItemDefault, TArray<UXIUItem*>& AddedItems);
 	/** Add an item
 	 * @param Item: item to add (the count is modified when count is added to existing matching item, and, if
 	 *				bDuplicate is true, the count is set to zero if a slot gets filled with duplicate item)
 	 * @param bDuplicate: set to true if the Item was not created using this component
 	 * @param AddedItem: pointer to added item
 	 * @return Count of this item which was not added */
-	int AddItem(TObjectPtr<UXIUItem> Item, bool bDuplicate, TObjectPtr<UXIUItem>& AddedItem);
+	int AddItem(UXIUItem* Item, bool bDuplicate, UXIUItem*& AddedItem);
 
 	/** Set item in slot
 	 ** @param SlotIndex: Slot to use
@@ -226,18 +226,18 @@ public:
 	 * @param AddedItem: pointer to added item
 	 * @param OldItem: pointer to item that was previously in the slot
 	 * @return true if item got set */
-	bool SetItemAtSlot(int SlotIndex, TObjectPtr<UXIUItem> Item, bool bDuplicate, TObjectPtr<UXIUItem>& AddedItem, TObjectPtr<UXIUItem>& OldItem);
+	bool SetItemAtSlot(int SlotIndex, UXIUItem* Item, bool bDuplicate, UXIUItem*& AddedItem, UXIUItem*& OldItem);
 	/** Get item in slot (Already checks IsEmpty on item)
 	 * @return pointer to item at index */
-	TObjectPtr<UXIUItem> GetItemAtSlot(const int SlotIndex);
+	UXIUItem* GetItemAtSlot(const int SlotIndex);
 	/** Remove item at slot
 	 * @return pointer to removed Item */
-	TObjectPtr<UXIUItem> RemoveItemAtSlot(int SlotIndex);
+	UXIUItem* RemoveItemAtSlot(int SlotIndex);
 
 	/** @return true if any item was found (Already checks IsEmpty on items) */
-	bool GetItemsByClass(const TSubclassOf<UXIUItem> ItemClass, TArray<TObjectPtr<UXIUItem>>& FoundItems);
+	bool GetItemsByClass(const TSubclassOf<UXIUItem> ItemClass, TArray<UXIUItem*>& FoundItems);
 	/** @return Count actually consumed */
-	int ConsumeItemByDefinition(const TObjectPtr<UXIUItemDefinition> ItemDefinition, const int Count);
+	int ConsumeItemByDefinition(const UXIUItemDefinition* ItemDefinition, const int Count);
 	
 /*--------------------------------------------------------------------------------------------------------------------*/
 
@@ -253,7 +253,7 @@ public:
 	 * @param bRegisterItemChange: if true stops replicating old item and unbind delegate, and start replicating new item and bind delegate
 	 * @param OldItem: old item that was in slot
 	 */
-	void RegisterSlotChange(const FXIUInventorySlot& Slot, const int32 OldCount, const int32 NewCount, const bool bRegisterItemChange, const TObjectPtr<UXIUItem> OldItem = nullptr);
+	void RegisterSlotChange(const FXIUInventorySlot& Slot, const int32 OldCount, const int32 NewCount, const bool bRegisterItemChange, UXIUItem* OldItem = nullptr);
 	
 /*--------------------------------------------------------------------------------------------------------------------*/
 	
@@ -348,8 +348,8 @@ protected:
 	void BP_OnInventoryChanged();
 
 public:
-	void BindItemCountChangedDelegate(const TObjectPtr<UXIUItem> InItem);
-	void UnBindItemCountChangedDelegate(const TObjectPtr<UXIUItem> InItem);
+	void BindItemCountChangedDelegate(UXIUItem* InItem);
+	void UnBindItemCountChangedDelegate(UXIUItem* InItem);
 private:
 	/** Calls Inventory.BroadcastChangeMessage
 	 * Manages the unbinding from item count change delegate in case the item count reaches zero */
@@ -361,8 +361,8 @@ private:
 	UFUNCTION()
 	void OnItemInitialized(UXIUItem* InItem);
 public:
-	void BindItemInitializedDelegate(const TObjectPtr<UXIUItem> InItem);
-	void UnBindItemInitializedDelegate(const TObjectPtr<UXIUItem> InItem);
+	void BindItemInitializedDelegate(UXIUItem* InItem);
+	void UnBindItemInitializedDelegate(UXIUItem* InItem);
 	
 	
 /*--------------------------------------------------------------------------------------------------------------------*/

@@ -20,7 +20,7 @@ struct FXIUItemCountChangeMessage
 		
 	}
 
-	FXIUItemCountChangeMessage(TObjectPtr<UXIUItem> Item, int32 OldCount)
+	FXIUItemCountChangeMessage(UXIUItem* Item, int32 OldCount)
 		:  Item(Item),
 		   OldCount(OldCount)
 	{

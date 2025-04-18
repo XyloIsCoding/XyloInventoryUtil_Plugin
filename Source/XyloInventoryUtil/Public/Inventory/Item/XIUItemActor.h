@@ -59,7 +59,7 @@ public:
 	
 private:
 	UPROPERTY(ReplicatedUsing = OnRep_Item, BlueprintReadOnly, meta = (AllowPrivateAccess))
-	UXIUItem* Item;
+	TObjectPtr<UXIUItem> Item;
 public:
 	UFUNCTION(BlueprintCallable)
 	void SetItemWithDefault(FXIUItemDefault NewItemDefault);
