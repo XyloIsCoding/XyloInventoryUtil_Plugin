@@ -15,6 +15,6 @@ class XYLOINVENTORYUTIL_API UXIUDropFragment : public UXIUItemFragment
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drop", meta = (MustImplement = "XIUPickUpInterface"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drop", meta = (MustImplement = "/Script/XyloInventoryUtil.XIUPickUpInterface"))
 	TSubclassOf<AActor> ItemDropActor;
 };
