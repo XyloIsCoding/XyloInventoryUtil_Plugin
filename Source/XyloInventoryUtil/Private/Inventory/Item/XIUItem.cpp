@@ -63,7 +63,7 @@ bool UXIUItem::IsEmpty() const
 
 bool UXIUItem::IsFull() const
 {
-	return Count == ItemDefinition->MaxCount;
+	return Count == GetMaxCount();
 }
 
 bool UXIUItem::CanStack(UXIUItem* Item)
@@ -154,6 +154,11 @@ void UXIUItem::SetItemDefinition(UXIUItemDefinition* InItemDefinition)
 /*--------------------------------------------------------------------------------------------------------------------*/
 /* Count */
 
+int32 UXIUItem::GetMaxCount() const
+{
+	return ItemDefinition->MaxCount;
+}
+
 int32 UXIUItem::GetCount() const
 {
 	return Count;
@@ -162,11 +167,11 @@ int32 UXIUItem::GetCount() const
 void UXIUItem::SetCount(int32 NewCount)
 {
 	const int32 OldCount = Count;
-	Count = FMath::Clamp(NewCount, 0, ItemDefinition->MaxCount);
+	Count = FMath::Clamp(NewCount, 0, GetMaxCount());
 	LastCount = OldCount; // TODO: Remove
 
 	OnRep_Count(OldCount);
-	//UE_LOG(LogTemp, Warning, TEXT("Set Count %i (requested %i. MaxCount %i)"), Count, NewCount, ItemDefinition->MaxCount)
+	//UE_LOG(LogTemp, Warning, TEXT("Set Count %i (requested %i. MaxCount %i)"), Count, NewCount, GetMaxCount())
 }
 
 int32 UXIUItem::ModifyCount(const int32 AddCount)

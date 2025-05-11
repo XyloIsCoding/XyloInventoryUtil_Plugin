@@ -184,6 +184,7 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FXIUItemCountChangedSignature ItemCountChangedDelegate;
 public:
+	int32 GetMaxCount() const;
 	/** @return item count */
 	UFUNCTION(BlueprintCallable)
 	int32 GetCount() const;
